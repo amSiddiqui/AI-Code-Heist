@@ -37,7 +37,7 @@ const ChatWindow = () => {
 
         setMessages(newMessages);
         
-        fetch('http://localhost:8000/stream_chat/', {
+        fetch('/api/stream_chat/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
