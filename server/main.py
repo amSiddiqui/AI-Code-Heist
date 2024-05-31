@@ -18,6 +18,8 @@ import os
 from typing import AsyncIterable, List, Union
 import hashlib
 import logging
+from dotenv import load_dotenv
+from datetime import timedelta
 
 
 import asyncio
@@ -31,6 +33,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import AsyncIteratorCallbackHandler
 
+from server.game_controller import get_all_games, create_new_game, get_players
 
 from pydantic import BaseModel
 
@@ -39,13 +42,10 @@ logging.basicConfig(level=logging.INFO)
 
 log = logging.getLogger(__name__)
 
-with open("keys", "r", encoding="utf-8") as f:
-    all_keys = f.read().split("\n")
-    openai_key = all_keys[0]
-    ADMIN_KEY = all_keys[1]
-    SECRET_KEY = all_keys[2]
+load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = openai_key
+SECRET_KEY = os.getenv("SECRET_KEY")
+ADMIN_KEY = os.getenv("ADMIN_KEY")
 
 app = FastAPI()
 
@@ -66,7 +66,7 @@ app.add_middleware(
 manager = LoginManager(SECRET_KEY, "/api/admin/login")
 
 @manager.user_loader()
-def load_user(user_id: str, *args, **kwargs):
+def load_user(user_id: str):
     log.info('User loaded: %s', user_id)
     return user_id if user_id == "admin" else None
 
@@ -141,7 +141,7 @@ def admin_login(data: dict):
     if not is_valid_admin_key(password):
         raise InvalidCredentialsException
 
-    access_token = manager.create_access_token(data={"sub": 'admin'})
+    access_token = manager.create_access_token(data={"sub": 'admin'}, expires=timedelta(days=2))
     log.info('Admin logged in')
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -149,5 +149,19 @@ def admin_login(data: dict):
 def test_protected(user=Depends(manager)):
     return {"message": "You are authenticated"}
 
+@router.get("/admin/games")
+def fetch_all_games(user=Depends(manager)):
+    all_games = get_all_games()
+    return all_games
 
+@router.post('/admin/games')
+def action_create_game(user=Depends(manager)):
+    game_id, join_key = create_new_game()
+    return {"game_id": game_id, "join_key": join_key}
+
+@router.get("/admin/games/{game_id}/players")
+def fetch_players(game_id: str, user=Depends(manager)):
+    players = get_players(game_id)
+    return players
+    
 app.include_router(router, prefix="/api")

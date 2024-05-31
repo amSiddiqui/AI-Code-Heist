@@ -1,7 +1,7 @@
 import React from 'react';
 import './Admin.css';
-import Container from '@mui/material/Container'
 import LoginPrompt from '../components/admin/LoginPrompt';
+import AdminWindow from '../components/admin/AdminWindow';
 
 const Admin = () => {
     const [isAuthenticated, setIsAuthenticated] = React.useState(false);
@@ -30,8 +30,9 @@ const Admin = () => {
 
     return (
         <>
-            <Container maxWidth="lg">
-            </Container>
+            {isAuthenticated && accessToken && (
+                <AdminWindow accessToken={accessToken} />
+            )}
             <LoginPrompt open={!isAuthenticated} onLogin={(token) => {
                 setAccessToken(token);
             }} />
