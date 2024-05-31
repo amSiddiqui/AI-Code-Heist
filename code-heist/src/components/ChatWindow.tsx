@@ -75,9 +75,7 @@ const ChatWindow = () => {
             gap={1}
         >
             <Box sx={{
-                marginBottom: "70px",
                 padding: "16px",
-                marginTop: "80px",
             }} gap={2} display={"flex"} flexDirection={"column"}>
                 {messages.map((message) => {
                     if (message.user) {

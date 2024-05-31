@@ -21,20 +21,8 @@ function Game() {
     return (
         <>
             <Box className="main-layout">
-                <Box display={"flex"} flexDirection={"column"}>
-                    <Box
-                        sx={{
-                            position: "fixed",
-                            width: "100%",
-                            top: 0,
-                        }}
-                    >
-                        <ActionBar />
-                    </Box>
-                    <Box>
-                        <ChatWindow />
-                    </Box>
-                </Box>
+                <ActionBar />
+                <ChatWindow />
             </Box>
         </>
     );
