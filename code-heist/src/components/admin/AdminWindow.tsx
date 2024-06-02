@@ -2,6 +2,7 @@ import Game from "@app/models/Game";
 import { Box, Button, CircularProgress, Container, Dialog, DialogActions, DialogTitle, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import GameCard from "./GameCard";
+import AdminUpdates from "@app/models/AdminUpdates";
 
 
 const AdminWindow = ({
@@ -14,6 +15,8 @@ const AdminWindow = ({
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [creatingGame, setCreatingGame] = useState(false);
     const [fetching, setFetching] = useState(false);
+
+    const [ws, setWs] = useState<WebSocket | null>(null);
 
     const refreshGames = useCallback(() => {
         setFetching(true);
@@ -42,6 +45,65 @@ const AdminWindow = ({
     useEffect(() => {
         refreshGames();
     }, [refreshGames]);
+
+    const handlePlayerUpdates = useCallback((data: AdminUpdates) => {
+        if (data.action === 'join') {
+            if (!data.game_key || !data.player) {
+                return;
+            }
+            setGames((games) => {
+                // find game by game id
+                const newPlayer = data.player;
+                if (!newPlayer) {
+                    return games;
+                }
+                const game = games.find((game) => game.join_key === data.game_key);
+                if (!game) {
+                    return games;
+                }
+
+                if (!(newPlayer.player_id in game.players)) {
+                    game.players[newPlayer.player_id] = newPlayer;
+                }
+
+                return [...games];
+            });
+        }
+    }, []);
+
+
+    useEffect(() => {
+        const ws = new WebSocket("ws://localhost:8000/api/ws/admin");
+
+        ws.onopen = () => {
+            console.log("Admin Connected to WS");
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data) as AdminUpdates;
+            if (data.type === 'player_update') {
+                handlePlayerUpdates(data);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log("Admin WS Disconnected");
+        };
+
+        ws.onerror = (error) => {
+            console.error("Admin WS Error", error);
+        };
+
+        setWs(ws);
+
+        return () => {
+            if (ws && ws.readyState === ws.OPEN) {
+                ws.close();
+            }
+        };
+    }, [handlePlayerUpdates]);
+
+
 
 
     const onCreateGame = () => {
@@ -104,7 +166,7 @@ const AdminWindow = ({
                     }}
                 >
                     {games.map((game) => (
-                        <GameCard accessToken={accessToken} key={game.game_id} game={game} />
+                        <GameCard key={game.join_key} game={game} />
                     ))}
                 </Box>}
             </Container>

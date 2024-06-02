@@ -1,8 +1,7 @@
 import Game from "@app/models/Game";
-import Player from "@app/models/Player";
 import { ExpandMore } from "@mui/icons-material";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Chip, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography } from "@mui/material";
+import { useState } from "react";
 
 
 const formatISODate = (isoDate: string) => {
@@ -11,59 +10,32 @@ const formatISODate = (isoDate: string) => {
 }
 
 const GameCard = ({
-    game,
-    accessToken,
+    game
 }: {
-    game: Game,
-    accessToken: string,
+    game: Game
 }) => {
-
     const [tab, setTab] = useState(0);
-    const [players, setPlayers] = useState<Player[]>([]);
-
-    useEffect(() => {
-        fetch(`/api/admin/games/${game.game_id}/players`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        }).then(response => {
-            if (response.ok) {
-                response.json().then((data) => {
-                    setPlayers(data);
-                });
-            } else {
-                console.log('Failed to fetch:', response);
-            }
-        }).catch(error => {
-            console.log('Failed to fetch:', error);
-        });
-    }, [accessToken, game]);
-
-
     return (
         <Accordion>
             <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" color="initial">
-                    {game.join_key}
-                </Typography>
+                <Box display={'flex'} sx={{
+                    gap: 2,
+                    alignItems: 'center',
+                }}>
+                    <Typography variant="h6" color="initial">
+                        {game.join_key}
+                    </Typography>
+                    <Chip
+                    size='small'
+                        label={game.status.toLocaleUpperCase()}
+                        color={
+                            game.status === "active" ? "success" : "secondary"
+                        }
+                    />
+                </Box>
             </AccordionSummary>
             <AccordionDetails>
                 <Stack spacing={2}>
-                    <Box display={"flex"}>
-                        <Typography
-                            variant="body1"
-                            color="initial"
-                            flexGrow={1}
-                            sx={{
-                                textTransform: "capitalize",
-                            }}
-                        >
-                            {game.status}
-                        </Typography>
-                        <Typography variant="body1" color="initial">
-                            {game.game_id}
-                        </Typography>
-                    </Box>
                     <Box>{formatISODate(game.created_at)}</Box>
                     <Tabs
                         value={tab}
@@ -74,7 +46,7 @@ const GameCard = ({
                         <Tab label="Players"></Tab>
                         <Tab
                             label="Levels"
-                            id={`game-tab-${game.game_id}-1`}
+                            id={`game-tab-${game.join_key}-1`}
                         ></Tab>
                     </Tabs>
                     <Box hidden={tab !== 0}>
@@ -84,14 +56,18 @@ const GameCard = ({
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Name</TableCell>
-                                        <TableCell align='right'>Level</TableCell>
+                                        <TableCell align="right">
+                                            Level
+                                        </TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {players.map((player) => (
-                                        <TableRow key={player.player_id}>
+                                    {Object.entries(game.players).map(([player_id, player]) => (
+                                        <TableRow key={player_id}>
                                             <TableCell>{player.name}</TableCell>
-                                            <TableCell align="right">{player.level}</TableCell>
+                                            <TableCell align="right">
+                                                {player.level}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
