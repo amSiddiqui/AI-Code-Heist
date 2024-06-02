@@ -1,11 +1,12 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, useMediaQuery, useTheme } from "@mui/material";
 import ChatWindow from "../components/ChatWindow";
 import ActionBar from "../components/ActionBar";
-import React from "react";
+import React, { useCallback } from "react";
 
 import './Game.css';
 import Player from "@app/models/Player";
-
+import GameModel from "@app/models/Game";
+import AdminUpdates from "@app/models/AdminUpdates";
 
 type GID = {
     game_id: string;
@@ -25,7 +26,7 @@ function Game() {
     });
 
     const [player, setPlayer] = React.useState<Player | null>(null);
-    const [ws, setWs] = React.useState<WebSocket | null>(null);
+    const [game, setGame] = React.useState<GameModel | null>(null);
 
     const [nameInput, setNameInput] = React.useState("");
     const [gameKeyInput, setGameKeyInput] = React.useState("");
@@ -75,6 +76,54 @@ function Game() {
         });
     }
 
+
+    const handleGameUpdates = useCallback((data: AdminUpdates) => {
+        if (data.action === "start") {
+            const game_key = data.game_key;
+            const level = data.level;
+            const started_at = data.started_at;
+            if (!game_key || !level || !started_at) {
+                return;
+            }
+            setGame((game) => {
+                if (!game) {
+                    return game;
+                }
+
+                if (game_key !== game.join_key) {
+                    return game;
+                } 
+
+                const newGame = { ...game };
+                newGame.levels[level] = {
+                    started_at,
+                    started: true,
+                };
+                return newGame;
+            });
+        }
+
+        if (data.action === 'delete') {
+            const game_key = data.game_key;
+            if (!game_key) {
+                return;
+            }
+            setGame((game) => {
+                if (!game) {
+                    return game;
+                }
+
+                if (game_key !== game.join_key) {
+                    return game;
+                }
+
+                setPlayer(null);
+                return null;
+            });
+        }
+    }, []);
+
+
     React.useEffect(() => {
         if (ids) {
             const ws = new WebSocket(`ws://localhost:5173/api/ws/player`);
@@ -94,6 +143,10 @@ function Game() {
                 console.log('Message received: ', data);
                 if (data.type === 'connect') {
                     setPlayer(data.player);
+                    setGame(data.game);
+                }
+                if (data.type === 'game_update') {
+                    handleGameUpdates(data);
                 }
             }
 
@@ -105,15 +158,13 @@ function Game() {
                 console.log("Disconnected from server");
             }
 
-            setWs(ws);
-
             return () => {
                 ws.close();
             }
         } else {
             console.log("No ids");
         }
-    }, [ids]);
+    }, [ids, handleGameUpdates]);
 
     return (
         <>
@@ -149,9 +200,9 @@ function Game() {
                     </DialogActions>
                 </Dialog>
             )}
-            {player && (
+            {player && game && (
                 <Box className="main-layout">
-                    <ActionBar />
+                    <ActionBar player={player} game={game} />
                     <ChatWindow />
                 </Box>
             )}

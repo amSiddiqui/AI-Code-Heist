@@ -7,6 +7,12 @@ interface Game {
     players: {
         [player_id: string]: Player;
     };
+    levels: {
+        [level: string]: {
+            started_at: string;
+            started: boolean;
+        };
+    }
 }
 
 export default Game;

@@ -3,6 +3,7 @@ import { Box, Button, CircularProgress, Container, Dialog, DialogActions, Dialog
 import { useCallback, useEffect, useState } from "react";
 import GameCard from "./GameCard";
 import AdminUpdates from "@app/models/AdminUpdates";
+import { useSnackbar } from "notistack";
 
 
 const AdminWindow = ({
@@ -16,7 +17,51 @@ const AdminWindow = ({
     const [creatingGame, setCreatingGame] = useState(false);
     const [fetching, setFetching] = useState(false);
 
-    const [ws, setWs] = useState<WebSocket | null>(null);
+    const { enqueueSnackbar } = useSnackbar();
+    
+
+    const onStartLevel = useCallback((game_key: string, level: string) => {
+        fetch('/api/admin/game/start', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ game_key, level }),
+        }).then(response => {
+            if (!response.ok) {
+                enqueueSnackbar('Failed to start level', {
+                    variant: 'error',
+                });
+                console.log('Failed to start level:', response);
+            }
+        }).catch(err => {
+            enqueueSnackbar('Failed to start level', {
+                variant: 'error',
+            });
+            console.log('Failed to start level:', err);
+        });
+    }, [accessToken, enqueueSnackbar]);
+
+    const onDeleteGame = useCallback((game_key: string) => {
+        fetch('/api/admin/game/delete', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ game_key }),
+        }).then(response => {
+            if (!response.ok) {
+                enqueueSnackbar('Failed to delete game', {
+                    variant: 'error',
+                });
+                console.log('Failed to delete game:', response);
+            }
+        }).catch(err => {
+            console.log('Failed to delete game:', err);
+        });
+    }, [accessToken, enqueueSnackbar]);
 
     const refreshGames = useCallback(() => {
         setFetching(true);
@@ -52,7 +97,6 @@ const AdminWindow = ({
                 return;
             }
             setGames((games) => {
-                // find game by game id
                 const newPlayer = data.player;
                 if (!newPlayer) {
                     return games;
@@ -71,6 +115,48 @@ const AdminWindow = ({
         }
     }, []);
 
+    const handleGameUpdates = useCallback((data: AdminUpdates) => {
+        if (data.action === 'start') {
+            const game_key = data.game_key;
+            const level = data.level;
+            const started_at = data.started_at;
+            if (!game_key || !level || !started_at) {
+                return;
+            }
+
+            setGames((games) => {
+                const game = games.find((game) => game.join_key === game_key);
+                if (!game) {
+                    return games;
+                }
+                game.levels[level] = {
+                    started_at,
+                    started: true,
+                };
+
+                return [...games];
+            });
+        }
+
+        if (data.action === 'delete') {
+            const game_key = data.game_key;
+            if (!game_key) {
+                return;
+            }
+
+            setGames((games) => {
+                const index = games.findIndex((game) => game.join_key === game_key);
+                if (index === -1) {
+                    return games;
+                }
+
+                games.splice(index, 1);
+                return [...games];
+            });
+        }
+
+    }, []);
+
 
     useEffect(() => {
         const ws = new WebSocket("ws://localhost:8000/api/ws/admin");
@@ -81,9 +167,12 @@ const AdminWindow = ({
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data) as AdminUpdates;
-            if (data.type === 'player_update') {
+            if (data.type === "player_update") {
                 handlePlayerUpdates(data);
+            } else if (data.type === "game_update") {
+                handleGameUpdates(data);
             }
+            console.log("Admin WS Message", data);
         };
 
         ws.onclose = () => {
@@ -94,14 +183,12 @@ const AdminWindow = ({
             console.error("Admin WS Error", error);
         };
 
-        setWs(ws);
-
         return () => {
             if (ws && ws.readyState === ws.OPEN) {
                 ws.close();
             }
         };
-    }, [handlePlayerUpdates]);
+    }, [handlePlayerUpdates, handleGameUpdates]);
 
 
 
@@ -148,11 +235,12 @@ const AdminWindow = ({
                         Create Game
                     </Button>
                 </Box>
-                
+
                 {fetching && (
-                    <Box display={'flex'}
+                    <Box
+                        display={"flex"}
                         sx={{
-                            justifyContent: 'center',
+                            justifyContent: "center",
                             my: 3,
                         }}
                     >
@@ -160,15 +248,22 @@ const AdminWindow = ({
                     </Box>
                 )}
 
-                {!fetching && <Box
-                    sx={{
-                        my: 3,
-                    }}
-                >
-                    {games.map((game) => (
-                        <GameCard key={game.join_key} game={game} />
-                    ))}
-                </Box>}
+                {!fetching && (
+                    <Box
+                        sx={{
+                            my: 3,
+                        }}
+                    >
+                        {games.map((game) => (
+                            <GameCard
+                                onDeleteGame={onDeleteGame}
+                                onStartLevel={onStartLevel}
+                                key={game.join_key}
+                                game={game}
+                            />
+                        ))}
+                    </Box>
+                )}
             </Container>
 
             <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>

@@ -5,6 +5,7 @@ This module contains the game controller functions.
 import random
 from datetime import datetime, UTC
 import uuid
+from server.level import LEVELS
 
 from server.firebase_helper import db
 
@@ -28,7 +29,6 @@ def get_player_info(join_key: str, player_id: str):
 
     player = players[player_id]
     return player
-
 
 
 def get_all_games():
@@ -78,16 +78,32 @@ def add_player_through_join_key(join_key: str, name: str):
     return join_key, player_id
 
 
-def delete_game(join_key: str):
-    GAMES_COLLECTION.document(join_key).delete()
-
-
 def generate_4_digit_code():
     return str(random.randint(1000, 9999))
 
 
 class FailedToGenerateUniqueJoinKey(Exception):
     pass
+
+
+def get_game_info(join_key: str):
+    games = GAMES_COLLECTION.document(join_key).get()
+    games_dict = games.to_dict()
+    info = {
+        "join_key": join_key,
+        "players": games_dict["players"],
+        "status": games_dict["status"],
+        "created_at": games_dict["created_at"],
+        "levels": {
+            level: {
+                "started_at": value["started_at"],
+                "started": value["started"],
+            }
+            for level, value in games_dict["levels"].items()
+        },
+    }
+
+    return info
 
 
 def create_new_game():
@@ -105,11 +121,42 @@ def create_new_game():
         "players": {},
         "status": "active",
         "created_at": created_at,
+        "levels": {
+            level['level']: {
+                "code": level["code"],
+                "started_at": None,
+                "started": False,
+            }
+            for level in LEVELS
+        },
     }
 
     GAMES_COLLECTION.document(join_key).set(game_data)
     return join_key
 
 
+def start_game(game_key: str, level: str):
+    game = GAMES_COLLECTION.document(game_key).get()
+    if not game.exists:
+        raise GameNotFound
+    
+    game_data = game.to_dict()
+    levels = game_data["levels"]
+    if level not in levels:
+        raise ValueError("Level not found")
+    
+    started_at = datetime.now(UTC).isoformat()
+    levels[level]["started_at"] = started_at
+    levels[level]["started"] = True
+    GAMES_COLLECTION.document(game_key).update({"levels": levels})
+    return started_at
+
+
+def delete_game(game_key: str):
+    doc_ref = GAMES_COLLECTION.document(game_key)
+    doc_ref.delete()
+
+
 def check_if_document_exists(join_key: str):
-    return GAMES_COLLECTION.document(join_key).get().exists
+    game_ref = GAMES_COLLECTION.document(join_key).get()
+    return game_ref.exists
