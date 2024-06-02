@@ -11,7 +11,11 @@ interface Message {
 }
 
 
-const ChatWindow = () => {
+const ChatWindow = ({
+    level,
+}: {
+    level: number;
+}) => {
 
     const [messages, setMessages] = React.useState<Message[]>([]);
     const [isMessageStream, setIsMessageStream] = React.useState(false);
@@ -42,7 +46,7 @@ const ChatWindow = () => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ messages: newMessages }),
+            body: JSON.stringify({ messages: newMessages, level }),
         }).then(response => {
             const reader  = response.body?.getReader();
             const decoder = new TextDecoder('utf-8');

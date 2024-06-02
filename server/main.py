@@ -59,7 +59,7 @@ from server.game_controller import (
     GameNotFound,
 )
 
-from server.level import is_code_correct
+from server.level import is_code_correct, LEVELS
 
 
 logging.basicConfig(level=logging.INFO)
@@ -207,6 +207,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
+    level: int
 
 
 router = APIRouter()
@@ -218,13 +219,19 @@ def read_root():
     return {"Hello": "World"}
 
 
-def get_system_message():
+def get_system_message(level: int):
     """Get a system message for the chat assistant."""
-    return SystemMessage(content="""""")
+
+    level_obj = LEVELS[int(level) - 1]
+    code = level_obj["code"]
+    system_message = level_obj["system_message"] % code
+
+    return SystemMessage(content=system_message)
 
 
 async def send_message(
-    all_messages: List[Union[AIMessage, HumanMessage]]
+    all_messages: List[Union[AIMessage, HumanMessage]],
+    level: int
 ) -> AsyncIterable[str]:
     """Send messages to the chat assistant and yield the responses."""
     callback = AsyncIteratorCallbackHandler()
@@ -233,7 +240,7 @@ async def send_message(
     )
 
     task = asyncio.create_task(
-        model.agenerate(messages=[[get_system_message(), *all_messages]])
+        model.agenerate(messages=[[get_system_message(level), *all_messages]])
     )
 
     try:
@@ -247,7 +254,9 @@ async def send_message(
 @router.post("/stream_chat/")
 async def stream_chat(req: ChatRequest):
     """Stream chat messages to the chat assistant and return the responses."""
-    generator = send_message([message.to_message() for message in req.messages])
+    log.info('Received chat request: %s', req)
+    level = req.level
+    generator = send_message([message.to_message() for message in req.messages], level)
     return StreamingResponse(generator, media_type="text/event-stream")
 
 

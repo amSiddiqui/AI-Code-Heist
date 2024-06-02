@@ -237,7 +237,7 @@ function Game() {
             {player && game && (
                 <Box className="main-layout">
                     <ActionBar onWin={onWin} player={player} game={game} />
-                    <ChatWindow />
+                    <ChatWindow level={player.level} />
                 </Box>
             )}
             {loading && (
