@@ -1,4 +1,4 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, useMediaQuery, useTheme } from "@mui/material";
 import ChatWindow from "../components/ChatWindow";
 import ActionBar from "../components/ActionBar";
 import React, { useCallback } from "react";
@@ -33,6 +33,38 @@ function Game() {
 
     const [nameError, setNameError] = React.useState('');
     const [gameKeyError, setGameKeyError] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
+
+    const onWin = () => {
+        console.log('Win');
+        refreshPlayerAndGame();
+    }
+
+    const refreshPlayerAndGame = () => {
+        if (!game || !player) {
+            return;
+        }
+        const params = {
+            game_key: game.join_key,
+            player_id: player.player_id,
+        }
+
+        const base_url = '/api/game';
+        const url = new URL(base_url, window.location.origin);
+        url.search = new URLSearchParams(params).toString();
+        fetch(url).then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    setPlayer(data.player);
+                    setGame(data.game);
+                });
+            } else {
+                console.log('Failed to fetch:', response);
+            }
+        }).catch(err => {
+            console.log('Failed to fetch:', err);
+        });
+    }
 
     const joinGame = () => {
         setNameError('');
@@ -126,6 +158,7 @@ function Game() {
 
     React.useEffect(() => {
         if (ids) {
+            setLoading(true);
             const ws = new WebSocket(`ws://localhost:5173/api/ws/player`);
 
             ws.onopen = () => {
@@ -148,6 +181,7 @@ function Game() {
                 if (data.type === 'game_update') {
                     handleGameUpdates(data);
                 }
+                setLoading(false);
             }
 
             ws.onerror = (error) => {
@@ -168,7 +202,7 @@ function Game() {
 
     return (
         <>
-            {!player && (
+            {!player && !loading && (
                 <Dialog open fullWidth maxWidth={isMobile ? "lg" : "sm"}>
                     <DialogTitle>Join Game</DialogTitle>
                     <DialogContent>
@@ -202,9 +236,18 @@ function Game() {
             )}
             {player && game && (
                 <Box className="main-layout">
-                    <ActionBar player={player} game={game} />
+                    <ActionBar onWin={onWin} player={player} game={game} />
                     <ChatWindow />
                 </Box>
+            )}
+            {loading && (
+                <Dialog open fullWidth maxWidth={isMobile ? 'lg' : 'sm'}>
+                    <DialogContent>
+                        <Box display="flex" justifyContent="center">
+                            <CircularProgress />
+                        </Box>
+                    </DialogContent>
+                </Dialog>
             )}
         </>
     );

@@ -19,7 +19,7 @@ import os
 from typing import AsyncIterable, List, Union, Dict
 import hashlib
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime, UTC
 import asyncio
 import json
 import threading
@@ -54,9 +54,12 @@ from server.game_controller import (
     get_game_info,
     start_game,
     delete_game,
+    update_player_level,
     PlayerNotFound,
     GameNotFound,
 )
+
+from server.level import is_code_correct
 
 
 logging.basicConfig(level=logging.INFO)
@@ -217,9 +220,7 @@ def read_root():
 
 def get_system_message():
     """Get a system message for the chat assistant."""
-    return SystemMessage(
-        content=""""""
-    )
+    return SystemMessage(content="""""")
 
 
 async def send_message(
@@ -288,7 +289,7 @@ def action_create_game(_=Depends(manager)):
 def action_delete_game(data: dict, _=Depends(manager)):
     """Delete a game."""
     game_key = data.get("game_key")
-    print('Delete game request: game_key', game_key)
+    print("Delete game request: game_key", game_key)
     try:
         delete_game(game_key)
 
@@ -307,21 +308,21 @@ def action_delete_game(data: dict, _=Depends(manager)):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.post('/admin/game/start')
+@router.post("/admin/game/start")
 def start_game_level(data: dict, _=Depends(manager)):
-    game_key = data.get('game_key')
-    level = data.get('level')
+    game_key = data.get("game_key")
+    level = data.get("level")
     try:
         started_at = start_game(game_key, level)
 
         message = {
-            'type': 'game_update',
-            'action': 'start',
-            'game_key': game_key,
-            'level': level,
-            'started_at': started_at
+            "type": "game_update",
+            "action": "start",
+            "game_key": game_key,
+            "level": level,
+            "started_at": started_at,
         }
-        rds_client.publish('game_updates', json.dumps(message))
+        rds_client.publish("game_updates", json.dumps(message))
     except GameNotFound as exc:
         raise HTTPException(status_code=404, detail="Game not found") from exc
     except ValueError as exc:
@@ -407,6 +408,16 @@ def join_game(data: dict):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
+@router.get('/game')
+def get_game_and_player(game_key: str, player_id: str):
+    player_info = get_player_info(game_key, player_id)
+    game_info = get_game_info(game_key)
+    if player_info is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+    if game_info is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return {"player": player_info, "game": game_info}
+
 @router.websocket("/ws/admin")
 async def websocket_admin_endpoint(websocket: WebSocket):
     """Handle admin websocket connections."""
@@ -419,6 +430,58 @@ async def websocket_admin_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         log.info("Admin disconnected")
         remove_admin_connection(websocket)
+
+
+def calculate_score(started_at: str):
+    # started_at is isoformat utc time
+    # find seconds since started_at to utcnow
+    started_at = datetime.fromisoformat(started_at)
+    now = datetime.now(UTC)
+    return (now - started_at).total_seconds()
+
+
+@router.post("/game/guess")
+def gauss_code(data: dict):
+    game_key = data.get("game_key")
+    player_id = data.get("player_id")
+
+    player_info = get_player_info(game_key, player_id)
+    if player_info is None:
+        print("GUESS_CODE: Player not found")
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    guess = data.get("guess")
+    level = str(player_info.get("level"))
+
+    game_info = get_game_info(game_key)
+    if game_info is None:
+        print("GUESS_CODE: Game not found")
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if level not in game_info["levels"]:
+        print("GUESS_CODE: Invalid level")
+        raise HTTPException(status_code=400, detail="Invalid level")
+
+    level_info = game_info["levels"][level]
+    if not level_info["started"]:
+        print("GUESS_CODE: Level not started")
+        raise HTTPException(status_code=400, detail="Level not started")
+
+    if is_code_correct(guess, level):
+        score = calculate_score(level_info["started_at"])
+        level = int(level) + 1
+        update_player_level(game_key, player_id, level, score)
+        message = {
+            "type": "player_update",
+            "action": "level_complete",
+            "player_id": player_id,
+            "game_key": game_key,
+            "level": level,
+        }
+        rds_client.publish("game_updates", json.dumps(message))
+        return {"message": "Correct guess", "correct": True}
+    else:
+        return {"message": "Incorrect guess", "correct": False}
 
 
 app.include_router(router, prefix="/api")

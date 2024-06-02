@@ -4,9 +4,13 @@ import { useState } from "react";
 const CodeInput = ({
     open,
     onClose,
+    errorMessage,
+    onGuessCode,
 }: {
     open: boolean;
+    errorMessage: string;
     onClose: () => void;
+    onGuessCode: (guess: string) => void;
 }) => {
 
 
@@ -18,6 +22,8 @@ const CodeInput = ({
 
     const onSubmit = () => {
         setSubmitting(true);
+        onGuessCode(code);
+        setSubmitting(false);
     }
 
     return (
@@ -42,6 +48,8 @@ const CodeInput = ({
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         disabled={submitting}
+                        error={!!errorMessage}
+                        helperText={errorMessage}
                     >
                     </TextField>
                 </DialogContent>

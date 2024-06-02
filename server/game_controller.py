@@ -16,18 +16,15 @@ GAMES_COLLECTION = db.collection("games")
 def get_player_info(join_key: str, player_id: str):
     """Get player info from a game."""
     game = GAMES_COLLECTION.document(join_key).get()
-    print("Game Retrieved", game.id)
     if not game.exists:
-        print("Game not found with id:", join_key)
         return None
-    print("Game found with id:", join_key)
     game_data = game.to_dict()
     players = game_data["players"]
     if player_id not in players:
-        print("Player not found with id: %s", player_id)
         return None
 
     player = players[player_id]
+    player["player_id"] = player_id
     return player
 
 
@@ -104,6 +101,21 @@ def get_game_info(join_key: str):
     }
 
     return info
+
+
+def update_player_level(join_key: str, player_id: str, level: int, score: int):
+    game = GAMES_COLLECTION.document(join_key).get()
+    if not game.exists:
+        raise GameNotFound
+
+    game_data = game.to_dict()
+    players = game_data["players"]
+    if player_id not in players:
+        raise PlayerNotFound
+
+    players[player_id]["level"] = level
+    players[player_id]["score"][str(level)] = score
+    GAMES_COLLECTION.document(join_key).update({"players": players})
 
 
 def create_new_game():

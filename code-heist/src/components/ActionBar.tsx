@@ -3,6 +3,7 @@ import CodeInput from "./CodeInput";
 import { useEffect, useState } from "react";
 import Player from "@app/models/Player";
 import GameModel from "@app/models/Game";
+import SuccessDialog from "./SuccessDialog";
 
 
 const calculatePlayerScore = (player: Player) => 
@@ -21,13 +22,17 @@ const secondsToHourMinuteSecond = (seconds: number) => {
 
 const ActionBar = ({
     player,
-    game
+    game,
+    onWin
 }: {
     player: Player,
-    game: GameModel
+    game: GameModel,
+    onWin: () => void,
 }) => {
 
     const [open, setOpen] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [showSuccess, setShowSuccess] = useState(false);
     const [levelTimer, setLevelTimer] = useState(() => {
         if (!hasLevelStarted(game, player.level)) {
             return 0;
@@ -40,6 +45,34 @@ const ActionBar = ({
 
     const onClose = () => {
         setOpen(false);
+    }
+
+    const onGuessCode = (guess: string) => {
+        console.log('Player: ', player);
+        fetch('/api/game/guess', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ player_id: player.player_id, guess, game_key: game.join_key }),
+        }).then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    const correct = data.correct;
+                    if (correct) {
+                        setShowSuccess(true);
+                        onClose();
+                    } else {
+                        setErrorMessage('Incorrect guess. Try again.');
+                    }
+                });
+            } else {
+                setErrorMessage('Failed to submit guess');
+            }
+        }).catch((err) => {
+            console.log('Error while submitting guess:', err);
+            setErrorMessage('Something went wrong. Failed to submit guess');
+        });
     }
 
     useEffect(() => {
@@ -69,6 +102,7 @@ const ActionBar = ({
                     <Button
                         onClick={() => {
                             setOpen(true);
+                            setErrorMessage("");
                         }}
                         variant="outlined"
                         color="inherit"
@@ -104,7 +138,21 @@ const ActionBar = ({
                     </Box>
                 </Container>
             </Paper>
-            <CodeInput open={open} onClose={onClose} />
+            <CodeInput
+                onGuessCode={onGuessCode}
+                open={open}
+                onClose={onClose}
+                errorMessage={errorMessage}
+            />
+            {showSuccess && (
+                <SuccessDialog
+                    open={showSuccess}
+                    onNextLevel={() => {
+                        setShowSuccess(false);
+                        onWin();
+                    }}
+                />
+            )}
             {!hasLevelStarted(game, player.level) && (
                 <Dialog open fullWidth maxWidth={isMobile ? "lg" : "md"}>
                     <DialogTitle> Level {player.level}</DialogTitle>
