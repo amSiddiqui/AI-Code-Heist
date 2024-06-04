@@ -1,10 +1,12 @@
-import { AppBar, Box, Button, Container, Dialog, DialogContent, DialogTitle, Paper, Toolbar, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { AppBar, Box, Button, Container, Dialog, DialogContent, DialogTitle, Drawer, IconButton, Paper, Toolbar, Typography, useMediaQuery, useTheme } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import CodeInput from "./CodeInput";
 import { useEffect, useState } from "react";
 import Player from "@app/models/Player";
 import GameModel from "@app/models/Game";
 import SuccessDialog from "./SuccessDialog";
 import { calculatePlayerScore, secondsToHourMinuteSecond } from "../services/helper";
+import { DrawerList } from "./DrawerItem";
 
 const hasLevelStarted = (game: GameModel, level: number) => 
     game.levels[level.toString()] && game.levels[level.toString()].started;
@@ -20,6 +22,8 @@ const ActionBar = ({
     onWin: () => void,
 }) => {
 
+    const [drawer, setDrawer] = useState(false);
+
     const [open, setOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
@@ -34,6 +38,19 @@ const ActionBar = ({
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const onClose = () => {
         setOpen(false);
+    }
+
+    const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
+        if (
+            event &&
+            event.type === "keydown" &&
+            ((event as React.KeyboardEvent).key === "Tab" ||
+                (event as React.KeyboardEvent).key === "Shift")
+        ) {
+            return;
+        }
+
+        setDrawer(open);
     }
 
     const onGuessCode = (guess: string) => {
@@ -81,6 +98,16 @@ const ActionBar = ({
         <>
             <AppBar position="sticky">
                 <Toolbar>
+                    <IconButton
+                        size="large"
+                        edge="start"
+                        color="inherit"
+                        aria-label="menu"
+                        sx={{ mr: 2 }}
+                        onClick={toggleDrawer(true)}
+                    >
+                        <MenuIcon />
+                    </IconButton>
                     <Typography
                         variant="h6"
                         component="div"
@@ -121,7 +148,10 @@ const ActionBar = ({
                                 {player.name}
                             </Typography>
                             <Typography variant="body2" color="initial">
-                                Total TIme: {secondsToHourMinuteSecond(calculatePlayerScore(player))}
+                                Total TIme:{" "}
+                                {secondsToHourMinuteSecond(
+                                    calculatePlayerScore(player)
+                                )}
                             </Typography>
                         </Box>
                     </Box>
@@ -150,6 +180,13 @@ const ActionBar = ({
                     </DialogContent>
                 </Dialog>
             )}
+
+            <Drawer
+                open={drawer}
+                onClose={toggleDrawer(false)}
+            >
+                <DrawerList toggleDrawer={toggleDrawer} />
+            </Drawer>
         </>
     );
 }

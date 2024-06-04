@@ -1,16 +1,9 @@
 import Game from "@app/models/Game";
-import { calculatePlayerScore, secondsToHourMinuteSecond } from "../../services/helper";
+import { calculatePlayerScore, formatISODate, secondsToHourMinuteSecond } from "../../services/helper";
 import { ExpandMore } from "@mui/icons-material";
 import { Accordion, AccordionActions, AccordionDetails, AccordionSummary, Box, Button, Chip, Dialog, DialogActions, DialogTitle, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography } from "@mui/material";
 import { useState } from "react";
 
-
-const formatISODate = (isoDate: string) => {
-    if (!isoDate)
-        return '';
-    const date = new Date(isoDate);
-    return date.toLocaleString();
-}
 
 const GameCard = ({
     game,
