@@ -3,6 +3,7 @@ import SendIcon from "@mui/icons-material/Send";
 import UserMessage from "./UserMessage";
 import AIMessage from "./AIMessage";
 import React, { useEffect } from "react";
+import { useGameContext } from "../services/GameContext";
 
 interface Message {
     id: number;
@@ -21,6 +22,8 @@ const ChatWindow = ({
     const [isMessageStream, setIsMessageStream] = React.useState(false);
     const [userMessage, setUserMessage] = React.useState("");
     const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+
+    const { levelCompleted } = useGameContext(); 
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView();
@@ -67,6 +70,12 @@ const ChatWindow = ({
             setIsMessageStream(false);
         });
     }
+
+    useEffect(() => {
+        setMessages([]);
+        setUserMessage("");
+        setIsMessageStream(false);
+    }, [levelCompleted]);
 
     return (
         <Box

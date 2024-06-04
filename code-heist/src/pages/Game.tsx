@@ -7,6 +7,7 @@ import './Game.css';
 import Player from "@app/models/Player";
 import GameModel from "@app/models/Game";
 import AdminUpdates from "@app/models/AdminUpdates";
+import { useGameContext } from "../services/GameContext";
 
 type GID = {
     game_id: string;
@@ -39,9 +40,12 @@ function Game() {
     const [loading, setLoading] = React.useState(false);
     const [gameLoadError, setGameLoadError] = React.useState('');
 
+    const { handleLevelComplete } = useGameContext();
+
     const onWin = () => {
         console.log('Win');
         refreshPlayerAndGame();
+        handleLevelComplete();
     }
 
     const refreshPlayerAndGame = () => {
@@ -192,8 +196,6 @@ function Game() {
 
             ws.onerror = (error) => {
                 console.log(error);
-                setLoading(false);
-                setGameLoadError('An error occurred while connecting.');
             }
 
             ws.onclose = () => {

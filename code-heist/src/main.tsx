@@ -9,18 +9,23 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Game from './pages/Game';
 import Admin from './pages/Admin';
 import { SnackbarProvider } from 'notistack';
+import { GameProvider } from './services/GameProvider';
 
 
 const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <Game />,
-  },
-  {
-    path: '/admin',
-    element: <Admin />,
-  }
-])
+    {
+        path: "/",
+        element: (
+            <GameProvider>
+                <Game />
+            </GameProvider>
+        ),
+    },
+    {
+        path: "/admin",
+        element: <Admin />,
+    },
+]);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
