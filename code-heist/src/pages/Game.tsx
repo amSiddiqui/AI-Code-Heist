@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, useMediaQuery, useTheme, Typography } from "@mui/material";
 import ChatWindow from "../components/ChatWindow";
 import ActionBar from "../components/ActionBar";
 import React, { useCallback } from "react";
@@ -12,6 +12,9 @@ type GID = {
     game_id: string;
     player_id: string;
 }
+
+const wsSchema = window.location.protocol === 'https:' ? 'wss' : 'ws';
+const wsUrl = `${wsSchema}://${window.location.host}/`;
 
 function Game() {
     const theme = useTheme();
@@ -34,6 +37,7 @@ function Game() {
     const [nameError, setNameError] = React.useState('');
     const [gameKeyError, setGameKeyError] = React.useState('');
     const [loading, setLoading] = React.useState(false);
+    const [gameLoadError, setGameLoadError] = React.useState('');
 
     const onWin = () => {
         console.log('Win');
@@ -159,7 +163,8 @@ function Game() {
     React.useEffect(() => {
         if (ids) {
             setLoading(true);
-            const ws = new WebSocket(`ws://localhost:5173/api/ws/player`);
+            setGameLoadError('');
+            const ws = new WebSocket(`${wsUrl}api/ws/player`);
 
             ws.onopen = () => {
                 console.log('Connection open sending connect message ', ids);
@@ -182,10 +187,13 @@ function Game() {
                     handleGameUpdates(data);
                 }
                 setLoading(false);
+                setGameLoadError('');
             }
 
             ws.onerror = (error) => {
                 console.log(error);
+                setLoading(false);
+                setGameLoadError('An error occurred while connecting.');
             }
 
             ws.onclose = () => {
@@ -202,7 +210,7 @@ function Game() {
 
     return (
         <>
-            {!player && !loading && (
+            {!player && !loading && !gameLoadError && (
                 <Dialog open fullWidth maxWidth={isMobile ? "lg" : "sm"}>
                     <DialogTitle>Join Game</DialogTitle>
                     <DialogContent>
@@ -221,30 +229,47 @@ function Game() {
                                 fullWidth
                                 label="Game Key"
                                 value={gameKeyInput}
-                                onChange={(e) => setGameKeyInput(e.target.value)}
+                                onChange={(e) =>
+                                    setGameKeyInput(e.target.value)
+                                }
                                 error={!!gameKeyError}
                                 helperText={gameKeyError}
                             />
                         </Stack>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => joinGame()} variant="contained" type="button">
+                        <Button
+                            onClick={() => joinGame()}
+                            variant="contained"
+                            type="button"
+                        >
                             Join
                         </Button>
                     </DialogActions>
                 </Dialog>
             )}
-            {player && game && (
+            {player && game && !gameLoadError && (
                 <Box className="main-layout">
                     <ActionBar onWin={onWin} player={player} game={game} />
                     <ChatWindow level={player.level} />
                 </Box>
             )}
-            {loading && (
-                <Dialog open fullWidth maxWidth={isMobile ? 'lg' : 'sm'}>
+            {loading && !gameLoadError && (
+                <Dialog open fullWidth maxWidth={isMobile ? "lg" : "sm"}>
                     <DialogContent>
                         <Box display="flex" justifyContent="center">
                             <CircularProgress />
+                        </Box>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {gameLoadError && (
+                <Dialog open fullWidth maxWidth={isMobile ? "lg" : "sm"}>
+                    <DialogTitle color='error'>Error</DialogTitle>
+                    <DialogContent>
+                        <Box display="flex" justifyContent="center">
+                            <Typography variant="body1" color="initial">{gameLoadError}</Typography>
                         </Box>
                     </DialogContent>
                 </Dialog>

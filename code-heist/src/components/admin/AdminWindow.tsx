@@ -6,6 +6,10 @@ import AdminUpdates from "@app/models/AdminUpdates";
 import { useSnackbar } from "notistack";
 
 
+const wsSchema = window.location.protocol === "https:" ? "wss" : "ws";
+const wsUrl = `${wsSchema}://${window.location.host}/`;
+
+
 const AdminWindow = ({
     accessToken,
 }: {
@@ -159,7 +163,7 @@ const AdminWindow = ({
 
 
     useEffect(() => {
-        const ws = new WebSocket("ws://localhost:8000/api/ws/admin");
+        const ws = new WebSocket(`${wsUrl}api/ws/admin`);
 
         ws.onopen = () => {
             console.log("Admin Connected to WS");
