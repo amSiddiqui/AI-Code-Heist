@@ -1,5 +1,6 @@
+import { useGameContext } from "../services/GameContext";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, useMediaQuery, useTheme } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const CodeInput = ({
     open,
@@ -20,11 +21,18 @@ const CodeInput = ({
     const [code, setCode] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
+    const { levelCompleted } = useGameContext();
+
     const onSubmit = () => {
         setSubmitting(true);
         onGuessCode(code);
         setSubmitting(false);
     }
+
+    useEffect(() => {
+        setCode('');
+        setSubmitting(false);
+    }, [levelCompleted]);
 
     return (
         <>

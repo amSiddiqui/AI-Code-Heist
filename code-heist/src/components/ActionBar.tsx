@@ -4,21 +4,11 @@ import { useEffect, useState } from "react";
 import Player from "@app/models/Player";
 import GameModel from "@app/models/Game";
 import SuccessDialog from "./SuccessDialog";
-
-
-const calculatePlayerScore = (player: Player) => 
-    Object.values(player.score).reduce((acc, val) => acc + val, 0)
+import { calculatePlayerScore, secondsToHourMinuteSecond } from "../services/helper";
 
 const hasLevelStarted = (game: GameModel, level: number) => 
     game.levels[level.toString()] && game.levels[level.toString()].started;
 
-const secondsToHourMinuteSecond = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    // only show number if greater than 0
-    return `${h > 0 ? h + 'h' : ''} ${m > 0 ? m + 'm' : ''} ${s > 0 ? s + 's' : ''}`;
-}
 
 const ActionBar = ({
     player,
@@ -42,7 +32,6 @@ const ActionBar = ({
     });
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
     const onClose = () => {
         setOpen(false);
     }
@@ -132,7 +121,7 @@ const ActionBar = ({
                                 {player.name}
                             </Typography>
                             <Typography variant="body2" color="initial">
-                                Score: {calculatePlayerScore(player)}
+                                Total TIme: {secondsToHourMinuteSecond(calculatePlayerScore(player))}
                             </Typography>
                         </Box>
                     </Box>

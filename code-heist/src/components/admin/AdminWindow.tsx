@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import GameCard from "./GameCard";
 import AdminUpdates from "@app/models/AdminUpdates";
 import { useSnackbar } from "notistack";
+import Player from "@app/models/Player";
 
 
 const wsSchema = window.location.protocol === "https:" ? "wss" : "ws";
@@ -91,6 +92,37 @@ const AdminWindow = ({
             });
     }, [accessToken]);
 
+    const refreshGamePlayer = useCallback((game_key: string, player_id: string) => {
+        const params = {
+            game_key,
+            player_id,
+        };
+
+        const base_url = "/api/game";
+        const url = new URL(base_url, window.location.origin);
+        url.search = new URLSearchParams(params).toString();
+
+        fetch(url).then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    const newPlayerInfo: Player = data.player;
+                    setGames((games) => {
+                        const game = games.find((game) => game.join_key === game_key);
+                        if (!game) {
+                            return games;
+                        }
+
+                        game.players[player_id] = newPlayerInfo;
+                        return [...games];
+                    });
+                });
+            } else {
+                console.log("Failed to fetch:", response);
+            }
+        });
+
+    }, []);
+
     useEffect(() => {
         refreshGames();
     }, [refreshGames]);
@@ -117,7 +149,13 @@ const AdminWindow = ({
                 return [...games];
             });
         }
-    }, []);
+
+        if (data.action === 'level_complete') {
+            if (data.game_key && data.player_id) {
+                refreshGamePlayer(data.game_key, data.player_id);
+            }
+        }
+    }, [refreshGamePlayer]);
 
     const handleGameUpdates = useCallback((data: AdminUpdates) => {
         if (data.action === 'start') {
