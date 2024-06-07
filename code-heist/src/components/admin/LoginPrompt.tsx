@@ -48,39 +48,44 @@ const LoginPrompt = (
 
     return (
         <>
-            <Dialog open={open} fullWidth
-                maxWidth={isMobile ? "lg" : "xs"}
-            >
+            <Dialog open={open} fullWidth maxWidth={isMobile ? "lg" : "xs"}>
                 <DialogTitle>Admin Login</DialogTitle>
                 <DialogContent>
                     <TextField
                         autoFocus
-                        type='password'
-                        margin='dense'
-                        id='admin-password'
-                        label='Password'
+                        type="password"
+                        margin="dense"
+                        id="admin-password"
+                        label="Password"
                         fullWidth
-                        variant='standard'
+                        variant="standard"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={submitting}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
+                            if (e.key === "Enter") {
                                 onSubmit();
                             }
                         }}
                         error={!!error}
                         helperText={error}
-                    >
-                    </TextField>
+                    ></TextField>
                 </DialogContent>
 
                 <DialogActions>
-                    <Button variant='contained' onClick={onSubmit} disabled={submitting} type='button'>Login</Button>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        onClick={onSubmit}
+                        disabled={submitting}
+                        type="button"
+                    >
+                        Login
+                    </Button>
                 </DialogActions>
             </Dialog>
         </>
-    )
+    );
 }
 
 export default LoginPrompt;

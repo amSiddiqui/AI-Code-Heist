@@ -23,7 +23,7 @@ const ChatWindow = ({
     const [userMessage, setUserMessage] = React.useState("");
     const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
 
-    const { levelCompleted } = useGameContext(); 
+    const { levelCompleted, clearChat } = useGameContext(); 
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView();
@@ -76,6 +76,10 @@ const ChatWindow = ({
         setUserMessage("");
         setIsMessageStream(false);
     }, [levelCompleted]);
+
+    useEffect(() => {
+        setMessages([]);
+    }, [clearChat]);
 
     return (
         <Box
@@ -138,6 +142,7 @@ const ChatWindow = ({
                             inputProps={{
                                 "aria-label": "Ask a question...",
                             }}
+                            focused
                             variant="standard"
                             disabled={isMessageStream}
                             multiline
@@ -148,7 +153,7 @@ const ChatWindow = ({
                                 setUserMessage(e.target.value);
                             }}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter") {
+                                if (e.key === "Enter" && !e.shiftKey) {
                                     if (userMessage.trim() === "") {
                                         return;
                                     }

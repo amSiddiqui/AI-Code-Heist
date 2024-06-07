@@ -148,7 +148,7 @@ const ActionBar = ({
                                 {player.name}
                             </Typography>
                             <Typography variant="body2" color="initial">
-                                Total TIme:{" "}
+                                Total Time:{" "}
                                 {secondsToHourMinuteSecond(
                                     calculatePlayerScore(player)
                                 )}
@@ -181,10 +181,7 @@ const ActionBar = ({
                 </Dialog>
             )}
 
-            <Drawer
-                open={drawer}
-                onClose={toggleDrawer(false)}
-            >
+            <Drawer open={drawer} onClose={toggleDrawer(false)}>
                 <DrawerList toggleDrawer={toggleDrawer} />
             </Drawer>
         </>

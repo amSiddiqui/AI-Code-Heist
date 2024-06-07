@@ -7,13 +7,18 @@ interface GameProviderProps {
 
 export const GameProvider: FC<GameProviderProps> = ({ children }) => {
     const [levelCompleted, setLevelCompleted] = useState(false);
+    const [clearChat, setClearChat] = useState(false);
 
     const handleLevelComplete = () => {
         setLevelCompleted((prev) => !prev);
     };
 
+    const handleClearChat = () => {
+        setClearChat((prev) => !prev)
+    };
+
     return (
-        <GameContext.Provider value={{ levelCompleted, handleLevelComplete }}>
+        <GameContext.Provider value={{ levelCompleted, handleLevelComplete, clearChat, handleClearChat }}>
             {children}
         </GameContext.Provider>
     );

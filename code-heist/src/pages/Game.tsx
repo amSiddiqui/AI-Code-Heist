@@ -143,7 +143,7 @@ function Game() {
             });
         }
 
-        if (data.action === 'delete') {
+        if (data.action === 'delete' || data.action === 'deactivate') {
             const game_key = data.game_key;
             if (!game_key) {
                 return;
@@ -241,6 +241,7 @@ function Game() {
                     </DialogContent>
                     <DialogActions>
                         <Button
+                            size="small"
                             onClick={() => joinGame()}
                             variant="contained"
                             type="button"
@@ -267,11 +268,13 @@ function Game() {
             )}
 
             {gameLoadError && (
-                <Dialog open fullWidth maxWidth={isMobile ? "lg" : "sm"}>
-                    <DialogTitle color='error'>Error</DialogTitle>
+                <Dialog open fullWidth maxWidth={isMobile ? "md" : "sm"}>
+                    <DialogTitle color="error">Error</DialogTitle>
                     <DialogContent>
                         <Box display="flex" justifyContent="center">
-                            <Typography variant="body1" color="initial">{gameLoadError}</Typography>
+                            <Typography variant="body1" color="initial">
+                                {gameLoadError}
+                            </Typography>
                         </Box>
                     </DialogContent>
                 </Dialog>

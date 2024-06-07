@@ -13,12 +13,14 @@ from server.firebase_helper import db
 GAMES_COLLECTION = db.collection("games")
 
 
-def get_player_info(join_key: str, player_id: str):
+def get_player_info(join_key: str, player_id: str, active_only: bool=False):
     """Get player info from a game."""
     game = GAMES_COLLECTION.document(join_key).get()
     if not game.exists:
         return None
     game_data = game.to_dict()
+    if active_only and game_data["status"] != "active":
+        return None
     players = game_data["players"]
     if player_id not in players:
         return None
@@ -48,7 +50,7 @@ class PlayerAlreadyExists(Exception):
     pass
 
 
-def add_player_through_join_key(join_key: str, name: str):
+def add_player_through_join_key(join_key: str, name: str, active_only: bool=False):
     # check if game exists
     game = GAMES_COLLECTION.document(join_key).get()
     if not game.exists:
@@ -56,6 +58,9 @@ def add_player_through_join_key(join_key: str, name: str):
 
     # check if player already exists
     game_data = game.to_dict()
+    if active_only and game_data["status"] != "active":
+        raise GameNotFound
+
     players = game_data["players"]
     for player_id, player in players.items():
         if player["name"] == name:
@@ -167,6 +172,12 @@ def start_game(game_key: str, level: str):
 def delete_game(game_key: str):
     doc_ref = GAMES_COLLECTION.document(game_key)
     doc_ref.delete()
+
+
+def deactivate_game(game_key: str):
+    doc_ref = GAMES_COLLECTION.document(game_key)
+    doc_ref.update({"status": "deactive"})
+    return True
 
 
 def check_if_document_exists(join_key: str):

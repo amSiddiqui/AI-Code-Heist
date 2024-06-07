@@ -1,20 +1,22 @@
 import Game from "@app/models/Game";
 import { calculatePlayerScore, formatISODate, secondsToHourMinuteSecond } from "../../services/helper";
 import { ExpandMore } from "@mui/icons-material";
-import { Accordion, AccordionActions, AccordionDetails, AccordionSummary, Box, Button, Chip, Dialog, DialogActions, DialogTitle, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography } from "@mui/material";
+import { Accordion, AccordionActions, AccordionDetails, AccordionSummary, Box, Button, Chip, Dialog, DialogActions, DialogTitle, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useState } from "react";
 
 
 const GameCard = ({
     game,
     onStartLevel,
-    onDeleteGame
+    onDeactivateGame
 }: {
     game: Game,
     onStartLevel: (game_key: string, level: string) => void,
-    onDeleteGame: (game_key: string) => void
+    onDeactivateGame: (game_key: string) => void
 }) => {
-    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+    const [showDeactivateConfirmModal, setShowDeactivateConfirmModal] = useState(false);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     const [tab, setTab] = useState(0);
     return (
@@ -35,9 +37,7 @@ const GameCard = ({
                             size="small"
                             label={game.status.toLocaleUpperCase()}
                             color={
-                                game.status === "active"
-                                    ? "success"
-                                    : "secondary"
+                                game.status === "active" ? "success" : undefined
                             }
                         />
                     </Box>
@@ -83,7 +83,11 @@ const GameCard = ({
                                                         {player.level}
                                                     </TableCell>
                                                     <TableCell align="right">
-                                                        {secondsToHourMinuteSecond(calculatePlayerScore(player))}
+                                                        {secondsToHourMinuteSecond(
+                                                            calculatePlayerScore(
+                                                                player
+                                                            )
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             )
@@ -143,40 +147,49 @@ const GameCard = ({
                     </Stack>
                 </AccordionDetails>
                 <AccordionActions>
-                    <Button color="error" size="small" onClick={
-                        () => {
-                            setShowDeleteConfirmModal(true);
-                        }
-                    }>
-                        Delete
-                    </Button>
+                    {game.status === "active" && (
+                        <Button
+                            color="error"
+                            size="small"
+                            onClick={() => {
+                                setShowDeactivateConfirmModal(true);
+                            }}
+                        >
+                            Deactivate
+                        </Button>
+                    )}
                 </AccordionActions>
             </Accordion>
 
-            <Dialog open={showDeleteConfirmModal} onClose={
-                () => {
-                    setShowDeleteConfirmModal(false);
-                }
-            }>
-                <DialogTitle>Delete Game?</DialogTitle>
+            <Dialog
+                fullWidth
+                maxWidth={isMobile ? "lg" : "xs"}
+                open={showDeactivateConfirmModal}
+                onClose={() => {
+                    setShowDeactivateConfirmModal(false);
+                }}
+            >
+                <DialogTitle>Deactivate Game?</DialogTitle>
                 <DialogActions>
                     <Button
+                        size="small"
                         color="secondary"
                         onClick={() => {
-                            setShowDeleteConfirmModal(false);
+                            setShowDeactivateConfirmModal(false);
                         }}
                     >
                         Cancel
                     </Button>
                     <Button
+                        size="small"
                         color="error"
                         variant="contained"
                         onClick={() => {
-                            onDeleteGame(game.join_key);
-                            setShowDeleteConfirmModal(false);
+                            onDeactivateGame(game.join_key);
+                            setShowDeactivateConfirmModal(false);
                         }}
                     >
-                        Delete
+                        Deactivate
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -54,6 +54,7 @@ from server.game_controller import (
     get_game_info,
     start_game,
     delete_game,
+    deactivate_game,
     update_player_level,
     PlayerNotFound,
     GameNotFound,
@@ -71,6 +72,7 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_KEY = os.getenv("ADMIN_KEY")
 REDIS_URL = os.getenv("REDIS_URL")
+MODEL_NAME = "gpt-3.5-turbo-16k"
 
 app = FastAPI()
 
@@ -236,7 +238,8 @@ async def send_message(
     """Send messages to the chat assistant and yield the responses."""
     callback = AsyncIteratorCallbackHandler()
     model = ChatOpenAI(
-        streaming=True, verbose=True, model="gpt-3.5-turbo", callbacks=[callback]
+        streaming=True, verbose=True, model=MODEL_NAME, callbacks=[callback],
+        temperature=1.5
     )
 
     task = asyncio.create_task(
@@ -256,6 +259,8 @@ async def stream_chat(req: ChatRequest):
     """Stream chat messages to the chat assistant and return the responses."""
     log.info('Received chat request: %s', req)
     level = req.level
+    if len(req.messages) > 40:
+        raise HTTPException(status_code=400, detail="Too many messages")
     generator = send_message([message.to_message() for message in req.messages], level)
     return StreamingResponse(generator, media_type="text/event-stream")
 
@@ -311,6 +316,25 @@ def action_delete_game(data: dict, _=Depends(manager)):
         rds_client.publish("game_updates", json.dumps(message))
 
         return {"message": "Game deleted"}
+    except GameNotFound as exc:
+        raise HTTPException(status_code=404, detail="Game not found") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Internal server error") from exc
+
+
+@router.post('/admin/game/deactivate')
+def action_deactivate_game(data: dict, _=Depends(manager)):
+    try:
+        game_key = data.get('game_key')
+        deactivate_game(game_key)
+        message = {
+            "type": "game_update",
+            "action": "deactivate",
+            "game_key": game_key,
+        }
+
+        rds_client.publish("game_updates", json.dumps(message))
+        return {"message": "Game deactivated"}
     except GameNotFound as exc:
         raise HTTPException(status_code=404, detail="Game not found") from exc
     except Exception as exc:
@@ -388,7 +412,7 @@ async def handle_player_connect(data: dict):
     """Handle player connect requests."""
     game_id = data.get("game_id")
     player_id = data.get("player_id")
-    player_info = get_player_info(game_id, player_id)
+    player_info = get_player_info(game_id, player_id, active_only=True)
     if player_info is None:
         raise PlayerNotFound("Player not found")
 
@@ -407,7 +431,7 @@ def join_game(data: dict):
     game_key = data.get("game_key")
     player_name = data.get("player_name")
     try:
-        game_id, player_id = add_player_through_join_key(game_key, player_name)
+        game_id, player_id = add_player_through_join_key(game_key, player_name, active_only=True)
         return {"game_id": game_id, "player_id": player_id}
     except GameNotFound as exc:
         raise HTTPException(status_code=404, detail="Game not found") from exc

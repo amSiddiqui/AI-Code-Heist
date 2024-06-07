@@ -1,5 +1,5 @@
 import Game from "@app/models/Game";
-import { Box, Button, CircularProgress, Container, Dialog, DialogActions, DialogTitle, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Container, Dialog, DialogActions, DialogTitle, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import GameCard from "./GameCard";
 import AdminUpdates from "@app/models/AdminUpdates";
@@ -21,6 +21,8 @@ const AdminWindow = ({
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [creatingGame, setCreatingGame] = useState(false);
     const [fetching, setFetching] = useState(false);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
     const { enqueueSnackbar } = useSnackbar();
     
@@ -48,8 +50,8 @@ const AdminWindow = ({
         });
     }, [accessToken, enqueueSnackbar]);
 
-    const onDeleteGame = useCallback((game_key: string) => {
-        fetch('/api/admin/game/delete', {
+    const onDeactivateGame = useCallback((game_key: string) => {
+        fetch('/api/admin/game/deactivate', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -58,13 +60,13 @@ const AdminWindow = ({
             body: JSON.stringify({ game_key }),
         }).then(response => {
             if (!response.ok) {
-                enqueueSnackbar('Failed to delete game', {
+                enqueueSnackbar('Failed to deactivate game', {
                     variant: 'error',
                 });
-                console.log('Failed to delete game:', response);
+                console.log('Failed to deactivate game:', response);
             }
         }).catch(err => {
-            console.log('Failed to delete game:', err);
+            console.log('Failed to deactivate game:', err);
         });
     }, [accessToken, enqueueSnackbar]);
 
@@ -180,19 +182,19 @@ const AdminWindow = ({
             });
         }
 
-        if (data.action === 'delete') {
+        if (data.action === 'deactivate') {
             const game_key = data.game_key;
             if (!game_key) {
                 return;
             }
 
             setGames((games) => {
-                const index = games.findIndex((game) => game.join_key === game_key);
-                if (index === -1) {
+                // set the status as inactive
+                const game = games.find((game) => game.join_key === game_key);
+                if (!game) {
                     return games;
                 }
-
-                games.splice(index, 1);
+                game.status = 'inactive';
                 return [...games];
             });
         }
@@ -298,7 +300,7 @@ const AdminWindow = ({
                     >
                         {games.map((game) => (
                             <GameCard
-                                onDeleteGame={onDeleteGame}
+                                onDeactivateGame={onDeactivateGame}
                                 onStartLevel={onStartLevel}
                                 key={game.join_key}
                                 game={game}
@@ -308,10 +310,16 @@ const AdminWindow = ({
                 )}
             </Container>
 
-            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+            <Dialog
+                fullWidth
+                maxWidth={isMobile ? "lg" : "xs"}
+                open={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+            >
                 <DialogTitle>Create New Game?</DialogTitle>
                 <DialogActions>
                     <Button
+                        size="small"
                         disabled={creatingGame}
                         color="secondary"
                         onClick={() => setConfirmOpen(false)}
@@ -319,6 +327,7 @@ const AdminWindow = ({
                         Cancel
                     </Button>
                     <Button
+                        size="small"
                         disabled={creatingGame}
                         color="success"
                         variant="contained"

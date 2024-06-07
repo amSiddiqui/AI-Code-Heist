@@ -3,6 +3,8 @@ import { createContext, useContext } from "react"
 interface GameContextType {
     levelCompleted: boolean;
     handleLevelComplete: () => void;
+    clearChat: boolean;
+    handleClearChat: () => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);

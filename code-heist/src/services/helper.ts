@@ -5,9 +5,7 @@ export const secondsToHourMinuteSecond = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
-    return `${h > 0 ? h + "h" : ""} ${m > 0 ? m + "m" : ""} ${
-        s > 0 ? s + "s" : ""
-    }`;
+    return `${h > 0 ? h + "h" : ""} ${m > 0 ? m + "m" : ""} ${s + "s"}`;
 };
 
 export const calculatePlayerScore = (player: Player) =>

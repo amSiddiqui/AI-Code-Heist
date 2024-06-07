@@ -40,7 +40,7 @@ const CodeInput = ({
                 open={open}
                 fullWidth
                 onClose={onClose}
-                maxWidth={ isMobile ? "lg" : "sm" }
+                maxWidth={isMobile ? "lg" : "sm"}
             >
                 <DialogTitle>Guess the code</DialogTitle>
                 <DialogContent>
@@ -58,12 +58,21 @@ const CodeInput = ({
                         disabled={submitting}
                         error={!!errorMessage}
                         helperText={errorMessage}
-                    >
-                    </TextField>
+                    ></TextField>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={onClose} type="button">Close</Button>
-                    <Button variant="contained" onClick={onSubmit} disabled={submitting} type="button">Guess</Button>
+                    <Button size="small" onClick={onClose} type="button">
+                        Close
+                    </Button>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        onClick={onSubmit}
+                        disabled={submitting}
+                        type="button"
+                    >
+                        Guess
+                    </Button>
                 </DialogActions>
             </Dialog>
         </>
