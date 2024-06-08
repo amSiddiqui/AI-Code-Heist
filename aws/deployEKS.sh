@@ -41,7 +41,8 @@ kubectl create secret generic ai-code-heist-secrets \
   --from-literal=OPENAI_API_KEY=$OPENAI_API_KEY \
   --from-literal=ADMIN_KEY=$ADMIN_KEY \
   --from-literal=SECRET_KEY=$SECRET_KEY \
-  --from-literal=REDIS_URL=$REDIS_URL
+  --from-literal=REDIS_URL=$REDIS_URL \
+  --from-literal=REDIS_PORT=$REDIS_PORT
 
 kubectl create configmap firebase-config --from-file=$FIREBASE_SDK
 

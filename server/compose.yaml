@@ -18,6 +18,7 @@ services:
       - REDIS_URL=${REDIS_URL}
       - ADMIN_KEY=${ADMIN_KEY}
       - SECRET_KEY=${SECRET_KEY}
+      - REDIS_PORT=${REDIS_PORT}
     volumes:
       - .:/app
       - ./firebase-sdk.json:/app/firebase-sdk.json:ro

@@ -104,7 +104,8 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_KEY = os.getenv("ADMIN_KEY")
-REDIS_URL = os.getenv("REDIS_URL")
+REDIS_URL = os.getenv("REDIS_URL", 'localhost')
+REDIS_PORT = os.getenv("REDIS_PORT", '6379')
 MODEL_NAME = "gpt-3.5-turbo-16k"
 
 app = FastAPI()
@@ -125,7 +126,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-rds_client = redis.Redis.from_url(REDIS_URL)
+rds_client = redis.Redis.from_url(f'redis://{REDIS_URL}:{REDIS_PORT}')
 
 log.info("Redis client connected")
 

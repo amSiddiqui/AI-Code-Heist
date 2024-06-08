@@ -1,4 +1,4 @@
-import { Box, IconButton, Paper, TextField } from "@mui/material";
+import { Box, Container, IconButton, Paper, TextField, Typography } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import UserMessage from "./UserMessage";
 import AIMessage from "./AIMessage";
@@ -91,29 +91,57 @@ const ChatWindow = ({
             flexDirection="column"
             gap={1}
         >
-            <Box sx={{
-                padding: "16px",
-                mb: '25px'
-            }} gap={2} display={"flex"} flexDirection={"column"}>
-                {messages.map((message) => {
-                    if (message.user) {
-                        return (
-                            <UserMessage
-                                key={message.id}
-                                message={message.message}
-                            />
-                        );
-                    } else {
-                        return (
-                            <AIMessage
-                                key={message.id}
-                                message={message.message}
-                            />
-                        );
-                    }
-                })}
-                <div ref={messagesEndRef}></div>
-            </Box>
+            {messages.length > 0 && (
+                <Container>
+                    <Box
+                        sx={{
+                            py: "16px",
+                            mb: "25px",
+                        }}
+                        gap={2}
+                        display={"flex"}
+                        flexDirection={"column"}
+                    >
+                        {messages.map((message) => {
+                            if (message.user) {
+                                return (
+                                    <UserMessage
+                                        key={message.id}
+                                        message={message.message}
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <AIMessage
+                                        key={message.id}
+                                        message={message.message}
+                                    />
+                                );
+                            }
+                        })}
+                        <div ref={messagesEndRef}></div>
+                    </Box>
+                </Container>
+            )}
+            {messages.length === 0 && (
+                <Box
+                    sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        my: 4,
+                    }}
+                >
+                    <Typography
+                        variant="body1"
+                        sx={{
+                            color: "gray", // TODO: Make this a theme color
+                        }}
+                    >
+                        Say Hi... 👋
+                    </Typography>
+                </Box>
+            )}
             <Box
                 sx={{
                     position: "fixed",
@@ -121,12 +149,15 @@ const ChatWindow = ({
                     width: "100%",
                 }}
             >
-                <Box sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    width: "100%",
-                }}>
+                <Box
+                
+                    sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                    }}
+                >
                     <Paper
                         component="form"
                         sx={{
