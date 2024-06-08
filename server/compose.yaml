@@ -15,10 +15,11 @@ services:
       - 8000:8000
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - REDIS_URL=redis://host.docker.internal:6379/
+      - REDIS_URL=${REDIS_URL}
       - ADMIN_KEY=${ADMIN_KEY}
       - SECRET_KEY=${SECRET_KEY}
     volumes:
       - .:/app
       - ./firebase-sdk.json:/app/firebase-sdk.json:ro
     network_mode: "bridge"
+    image: ai-code-heist-api:latest

@@ -16,3 +16,7 @@ Resources:
       VpcSecurityGroupIds:
         - !Ref SecurityGroupId
       CacheSubnetGroupName: ai-code-heist-private-sg
+Outputs:
+  CacheClusterId:
+    Description: The ID of the Redis cluster
+    Value: !Ref RedisCluster

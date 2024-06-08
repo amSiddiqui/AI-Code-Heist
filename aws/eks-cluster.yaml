@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EKS Cluster
+
+Parameters:
+  PrivateSubnetId1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "Private subnet ID"
+    Default: "/ai-code-heist/private-subnet-1"
+  PublicSubnetId1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "Public subnet ID"
+    Default: "/ai-code-heist/public-subnet-1"
+  PrivateSubnetId2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "Private subnet ID"
+    Default: "/ai-code-heist/private-subnet-2"
+  PublicSubnetId2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "Public subnet ID"
+    Default: "/ai-code-heist/public-subnet-2"
+  EKSClusterRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "EKS Cluster Role ARN"
+    Default: "/ai-code-heist/eks-cluster-role-arn"
+  EKSNodeGroupRoleArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: "EKS Node Group Role ARN"
+    Default: "/ai-code-heist/ai-code-heist-eks-nodegroup-role-arn"
+
+Resources:
+  EKSCluster:
+    Type: 'AWS::EKS::Cluster'
+    Properties: 
+      Name: ai-code-heist-cluster
+      RoleArn: !Ref EKSClusterRoleArn
+      ResourcesVpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnetId1
+          - !Ref PrivateSubnetId2
+
+  NodeGroup:
+    Type: 'AWS::EKS::Nodegroup'
+    Properties:
+      ClusterName: !Ref EKSCluster
+      NodeRole: !Ref EKSNodeGroupRoleArn
+      Subnets:
+        - !Ref PrivateSubnetId1
+        - !Ref PrivateSubnetId2
+      ScalingConfig:
+        DesiredSize: 1
+        MinSize: 1
+        MaxSize: 3
+      InstanceTypes: ['t3.small']
+      AmiType: AL2_x86_64
