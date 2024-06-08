@@ -19,6 +19,7 @@ import os
 from typing import AsyncIterable, List, Union, Dict
 import hashlib
 import logging
+from logging.config import dictConfig
 from datetime import timedelta, datetime, UTC
 import asyncio
 import json
@@ -63,7 +64,39 @@ from lib.game_controller import (
 from lib.level import is_code_correct, LEVELS
 
 
-logging.basicConfig(level=logging.INFO)
+logging_config = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(levelprefix)s %(asctime)s %(message)s",
+            "use_colors": True,
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+        },
+    },
+    "root": {
+        "handlers": ["default"],
+        "level": "DEBUG",
+    },
+    "loggers": {
+        "uvicorn": {"handlers": ["default"], "level": "INFO"},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
+
+dictConfig(logging_config)
 
 log = logging.getLogger(__name__)
 
@@ -76,8 +109,11 @@ MODEL_NAME = "gpt-3.5-turbo-16k"
 
 app = FastAPI()
 
+log.info("Starting FastAPI application")
+
 origins = [
-    "http://localhost:5173",  # React app
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
 ]
 
 
@@ -90,6 +126,8 @@ app.add_middleware(
 )
 
 rds_client = redis.Redis.from_url(REDIS_URL)
+
+log.info("Redis client connected")
 
 connected_clients: Dict[str, List[WebSocket]] = {"admin": [], "players": []}
 
