@@ -45,7 +45,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import AsyncIteratorCallbackHandler
 
 
-from server.game_controller import (
+from lib.game_controller import (
     PlayerAlreadyExists,
     add_player_through_join_key,
     get_all_games,
@@ -60,7 +60,7 @@ from server.game_controller import (
     GameNotFound,
 )
 
-from server.level import is_code_correct, LEVELS
+from lib.level import is_code_correct, LEVELS
 
 
 logging.basicConfig(level=logging.INFO)

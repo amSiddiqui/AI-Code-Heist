@@ -5,9 +5,9 @@ This module contains the game controller functions.
 import random
 from datetime import datetime, UTC
 import uuid
-from server.level import LEVELS
+from .level import LEVELS
 
-from server.firebase_helper import db
+from .firebase_helper import db
 
 
 GAMES_COLLECTION = db.collection("games")
