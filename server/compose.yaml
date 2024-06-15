@@ -23,4 +23,4 @@ services:
       - .:/app
       - ./firebase-sdk.json:/app/firebase-sdk.json:ro
     network_mode: "bridge"
-    image: ai-code-heist-api:latest
+    image: ai-code-heist:latest
