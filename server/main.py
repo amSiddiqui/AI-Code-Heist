@@ -24,7 +24,9 @@ from datetime import timedelta, datetime, UTC
 import asyncio
 import json
 import threading
+from openai import APIError
 import redis
+from fastapi.staticfiles import StaticFiles
 
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -37,7 +39,7 @@ from fastapi import (
     WebSocketDisconnect,
     HTTPException,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_login import LoginManager
 from fastapi_login.exceptions import InvalidCredentialsException
@@ -83,7 +85,7 @@ logging_config = {
     },
     "root": {
         "handlers": ["default"],
-        "level": "DEBUG",
+        "level": "INFO",
     },
     "loggers": {
         "uvicorn": {"handlers": ["default"], "level": "INFO"},
@@ -106,7 +108,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_KEY = os.getenv("ADMIN_KEY")
 REDIS_URL = os.getenv("REDIS_URL", 'localhost')
 REDIS_PORT = os.getenv("REDIS_PORT", '6379')
-MODEL_NAME = "gpt-3.5-turbo-16k"
+MODEL_NAME = "gpt-3.5-turbo"
+temperature = 0.7
 
 app = FastAPI()
 
@@ -277,17 +280,27 @@ async def send_message(
     """Send messages to the chat assistant and yield the responses."""
     callback = AsyncIteratorCallbackHandler()
     model = ChatOpenAI(
-        streaming=True, verbose=True, model=MODEL_NAME, callbacks=[callback],
-        temperature=1.5
+        streaming=True,
+        verbose=True,
+        model=MODEL_NAME,
+        callbacks=[callback],
+        temperature=temperature,
     )
 
     task = asyncio.create_task(
         model.agenerate(messages=[[get_system_message(level), *all_messages]])
     )
 
+    password = LEVELS[int(level) - 1]["code"]
+
     try:
         async for token in callback.aiter():
+            # TODO: If the token is password then replace it with '********'
+            if token in password:
+                yield "**"
             yield token
+    except APIError as e:
+        log.error("Error sending message: %s", e)
     finally:
         callback.done.set()
     await task
@@ -557,3 +570,10 @@ def gauss_code(data: dict):
 
 
 app.include_router(router, prefix="/api")
+
+app.mount("/assets", StaticFiles(directory="static/assets", html=True), name="static")
+
+# add a catch all route
+@app.get("/{catch_all:path}")
+def catch_all(catch_all: str):
+    return FileResponse("static/index.html")
