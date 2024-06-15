@@ -4,7 +4,7 @@
 export $(cat .env | xargs)
 # Variables
 IMAGE_NAME="ai-code-heist"
-ECR_REPOSITORY="${ECR_REGISTRY}/${IMAGE_NAME}"
+ECR_REPOSITORY="${ECR_REGISTRY}"
 PLATFORM="linux/amd64"
 
 # Rebuild the Docker image for the specified platform

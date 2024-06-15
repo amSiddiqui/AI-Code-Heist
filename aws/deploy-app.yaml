@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VPCId:
+    Type: String
+  PrivateSubnetId:
+    Type: String
+  SecurityGroupId:
+    Type: String
+  RedisClusterEndpoint:
+    Type: String
+  EnvironmentName:
+    Type: String
+    Default: ai-code-heist
+  RedisClusterPort:
+    Type: String
+  ECRRepositoryUri:
+    Type: String
+    Description: The URI of the ECR repository containing the Docker image
+  OpenAIApiKey:
+    Type: String
+  AdminKey:
+    Type: String
+  SecretKey:
+    Type: String
+  PrivateS3:
+    Type: String
+Resources:
+  AppRunnerService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      SourceConfiguration:
+        ImageRepository:
+          ImageIdentifier: !Ref ECRRepositoryUri
+          ImageRepositoryType: ECR
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt AppRunnerServiceRole.Arn
+      InstanceConfiguration:
+        Cpu: '1024'
+        Memory: '2048'
+      NetworkConfiguration:
+        EgressConfiguration:
+          EgressType: VPC
+          VpcConnectorArn: !Ref VpcConnector
+      Environment:
+        - Name: OPENAI_API_KEY
+          Value: !Ref OpenAIApiKey
+        - Name: ADMIN_KEY
+          Value: !Ref AdminKey
+        - Name: SECRET_KEY
+          Value: !Ref SecretKey
+        - Name: REDIS_URL
+          Value: !Ref RedisClusterEndpoint
+        - Name: REDIS_PORT
+          Value: !Ref RedisClusterPort
+        - Name: PRIVATE_S3
+          Value: !Ref PrivateS3
+  AppRunnerServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apprunner.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AppRunnerServicePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub "arn:aws:s3:::${PrivateS3}/*"
+  VpcConnector:
+    Type: AWS::AppRunner::VpcConnector
+    Properties:
+      VpcConnectorName: !Sub "${EnvironmentName}-vpc-connector"
+      Subnets:
+        - !Ref PrivateSubnetId
+      SecurityGroups:
+        - !Ref SecurityGroupId
+Outputs:
+  AppRunnerServiceUrl:
+    Description: The URL of the App Runner service
+    Value: !Ref AppRunnerService
