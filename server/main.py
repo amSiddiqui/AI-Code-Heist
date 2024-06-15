@@ -26,7 +26,6 @@ import json
 import threading
 from openai import APIError
 import redis
-from fastapi.staticfiles import StaticFiles
 
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -39,6 +38,7 @@ from fastapi import (
     WebSocketDisconnect,
     HTTPException,
 )
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_login import LoginManager
@@ -46,24 +46,6 @@ from fastapi_login.exceptions import InvalidCredentialsException
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import AsyncIteratorCallbackHandler
-
-
-from lib.game_controller import (
-    PlayerAlreadyExists,
-    add_player_through_join_key,
-    get_all_games,
-    create_new_game,
-    get_player_info,
-    get_game_info,
-    start_game,
-    delete_game,
-    deactivate_game,
-    update_player_level,
-    PlayerNotFound,
-    GameNotFound,
-)
-
-from lib.level import is_code_correct, LEVELS
 
 
 logging_config = {
@@ -99,26 +81,40 @@ logging_config = {
 }
 
 dictConfig(logging_config)
+load_dotenv()
+
+
+from lib.game_controller import (
+    PlayerAlreadyExists,
+    add_player_through_join_key,
+    get_all_games,
+    create_new_game,
+    get_player_info,
+    get_game_info,
+    start_game,
+    delete_game,
+    deactivate_game,
+    update_player_level,
+    PlayerNotFound,
+    GameNotFound,
+)
+
+from lib.level import is_code_correct, LEVELS
 
 log = logging.getLogger(__name__)
 
-load_dotenv()
-
 SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_KEY = os.getenv("ADMIN_KEY")
-REDIS_URL = os.getenv("REDIS_URL", 'localhost')
-REDIS_PORT = os.getenv("REDIS_PORT", '6379')
+REDIS_URL = os.getenv("REDIS_URL", "localhost")
+REDIS_PORT = os.getenv("REDIS_PORT", "6379")
 MODEL_NAME = "gpt-3.5-turbo"
-temperature = 0.7
+TEMPERATURE = 0.7
 
 app = FastAPI()
 
 log.info("Starting FastAPI application")
 
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-]
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 
 app.add_middleware(
@@ -129,7 +125,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-rds_client = redis.Redis.from_url(f'redis://{REDIS_URL}:{REDIS_PORT}')
+log.info('Redis URL %s:%s', REDIS_URL, REDIS_PORT)
+
+rds_client = redis.Redis.from_url(f"redis://{REDIS_URL}:{REDIS_PORT}")
 
 log.info("Redis client connected")
 
@@ -274,8 +272,7 @@ def get_system_message(level: int):
 
 
 async def send_message(
-    all_messages: List[Union[AIMessage, HumanMessage]],
-    level: int
+    all_messages: List[Union[AIMessage, HumanMessage]], level: int
 ) -> AsyncIterable[str]:
     """Send messages to the chat assistant and yield the responses."""
     callback = AsyncIteratorCallbackHandler()
@@ -284,7 +281,7 @@ async def send_message(
         verbose=True,
         model=MODEL_NAME,
         callbacks=[callback],
-        temperature=temperature,
+        temperature=TEMPERATURE,
     )
 
     task = asyncio.create_task(
@@ -309,7 +306,7 @@ async def send_message(
 @router.post("/stream_chat/")
 async def stream_chat(req: ChatRequest):
     """Stream chat messages to the chat assistant and return the responses."""
-    log.info('Received chat request: %s', req)
+    log.info("Received chat request: %s", req)
     level = req.level
     if len(req.messages) > 40:
         raise HTTPException(status_code=400, detail="Too many messages")
@@ -374,10 +371,10 @@ def action_delete_game(data: dict, _=Depends(manager)):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.post('/admin/game/deactivate')
+@router.post("/admin/game/deactivate")
 def action_deactivate_game(data: dict, _=Depends(manager)):
     try:
-        game_key = data.get('game_key')
+        game_key = data.get("game_key")
         deactivate_game(game_key)
         message = {
             "type": "game_update",
@@ -483,7 +480,9 @@ def join_game(data: dict):
     game_key = data.get("game_key")
     player_name = data.get("player_name")
     try:
-        game_id, player_id = add_player_through_join_key(game_key, player_name, active_only=True)
+        game_id, player_id = add_player_through_join_key(
+            game_key, player_name, active_only=True
+        )
         return {"game_id": game_id, "player_id": player_id}
     except GameNotFound as exc:
         raise HTTPException(status_code=404, detail="Game not found") from exc
@@ -493,7 +492,7 @@ def join_game(data: dict):
         raise HTTPException(status_code=500, detail="Internal server error") from exc
 
 
-@router.get('/game')
+@router.get("/game")
 def get_game_and_player(game_key: str, player_id: str):
     player_info = get_player_info(game_key, player_id)
     game_info = get_game_info(game_key)
@@ -502,6 +501,7 @@ def get_game_and_player(game_key: str, player_id: str):
     if game_info is None:
         raise HTTPException(status_code=404, detail="Game not found")
     return {"player": player_info, "game": game_info}
+
 
 @router.websocket("/ws/admin")
 async def websocket_admin_endpoint(websocket: WebSocket):
@@ -572,6 +572,7 @@ def gauss_code(data: dict):
 app.include_router(router, prefix="/api")
 
 app.mount("/assets", StaticFiles(directory="static/assets", html=True), name="static")
+
 
 # add a catch all route
 @app.get("/{catch_all:path}")
