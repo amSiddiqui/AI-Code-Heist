@@ -1,8 +1,9 @@
 #!/bin/bash
 
+# Load ECR_REGISTRY from .env file
+export $(cat .env | xargs)
 # Variables
 IMAGE_NAME="ai-code-heist"
-ECR_REGISTRY="736435290091.dkr.ecr.eu-west-2.amazonaws.com"
 ECR_REPOSITORY="${ECR_REGISTRY}/${IMAGE_NAME}"
 PLATFORM="linux/amd64"
 
