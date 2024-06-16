@@ -28,32 +28,39 @@ Resources:
   AppRunnerService:
     Type: AWS::AppRunner::Service
     Properties:
+      ServiceName: ai-code-heist-app
       SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt AppRunnerServiceRole.Arn
+        AutoDeploymentsEnabled: true
         ImageRepository:
           ImageIdentifier: !Ref ECRRepositoryUri
           ImageRepositoryType: ECR
-        AuthenticationConfiguration:
-          AccessRoleArn: !GetAtt AppRunnerServiceRole.Arn
+          ImageConfiguration:
+            Port: 8000
+            RuntimeEnvironmentVariables:
+              - Name: OPENAI_API_KEY
+                Value: !Ref OpenAIApiKey
+              - Name: ADMIN_KEY
+                Value: !Ref AdminKey
+              - Name: SECRET_KEY
+                Value: !Ref SecretKey
+              - Name: REDIS_URL
+                Value: !Ref RedisClusterEndpoint
+              - Name: REDIS_PORT
+                Value: !Ref RedisClusterPort
+              - Name: PRIVATE_S3
+                Value: !Ref PrivateS3
       InstanceConfiguration:
-        Cpu: '1024'
-        Memory: '2048'
+        Cpu: 1024
+        Memory: 2048
       NetworkConfiguration:
         EgressConfiguration:
           EgressType: VPC
           VpcConnectorArn: !Ref VpcConnector
-      Environment:
-        - Name: OPENAI_API_KEY
-          Value: !Ref OpenAIApiKey
-        - Name: ADMIN_KEY
-          Value: !Ref AdminKey
-        - Name: SECRET_KEY
-          Value: !Ref SecretKey
-        - Name: REDIS_URL
-          Value: !Ref RedisClusterEndpoint
-        - Name: REDIS_PORT
-          Value: !Ref RedisClusterPort
-        - Name: PRIVATE_S3
-          Value: !Ref PrivateS3
+    DependsOn:
+      - VpcConnector
+      - AppRunnerServiceRole
   AppRunnerServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -82,6 +89,6 @@ Resources:
       SecurityGroups:
         - !Ref SecurityGroupId
 Outputs:
-  AppRunnerServiceUrl:
-    Description: The URL of the App Runner service
+  AppRunnerService:
+    Description: The App Runner service
     Value: !Ref AppRunnerService

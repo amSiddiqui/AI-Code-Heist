@@ -11,6 +11,7 @@ REDIS_STACK_NAME="ai-code-heist-redis-stack"
 APP_STACK_NAME="ai-code-heist-app-stack"
 REDIS_TEMPLATE_FILE="deploy-redis.yaml"
 APP_TEMPLATE_FILE="deploy-app.yaml"
+ECR_REPO_URI="${ECR_REPOSITORY_URI}:latest"
 
 # Deploy the Redis CloudFormation stack
 echo "Deploying the Redis stack..."
@@ -34,6 +35,8 @@ REDIS_CLUSTER_INFO=$(aws elasticache describe-cache-clusters --cache-cluster-id 
 REDIS_CLUSTER_ENDPOINT=$(echo $REDIS_CLUSTER_INFO | jq -r '.CacheClusters[0].CacheNodes[0].Endpoint.Address')
 REDIS_CLUSTER_PORT=$(echo $REDIS_CLUSTER_INFO | jq -r '.CacheClusters[0].CacheNodes[0].Endpoint.Port')
 
+echo "Redis cluster endpoint: $REDIS_CLUSTER_ENDPOINT:$REDIS_CLUSTER_PORT"
+
 # Deploy the App Runner CloudFormation stack
 echo "Deploying the App Runner stack..."
 aws cloudformation deploy \
@@ -46,7 +49,7 @@ aws cloudformation deploy \
     SecurityGroupId=$SECURITY_GROUP_ID \
     RedisClusterEndpoint=$REDIS_CLUSTER_ENDPOINT \
     RedisClusterPort=$REDIS_CLUSTER_PORT \
-    ECRRepositoryUri=$ECR_REPOSITORY_URI \
+    ECRRepositoryUri=$ECR_REPO_URI \
     OpenAIApiKey=$OPENAI_API_KEY \
     AdminKey=$ADMIN_KEY \
     SecretKey=$SECRET_KEY \
