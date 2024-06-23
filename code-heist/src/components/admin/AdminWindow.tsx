@@ -80,6 +80,15 @@ const AdminWindow = ({
             .then((response) => {
                 if (response.ok) {
                     response.json().then((data) => {
+                        data.sort((a: Game, b: Game) => {
+                            if (a.status === 'active' && b.status !== 'active') {
+                                return -1;
+                            }
+                            if (a.status !== 'active' && b.status === 'active') {
+                                return 1;
+                            }
+                            return 0;
+                        });
                         setGames(data);
                     });
                 } else {
