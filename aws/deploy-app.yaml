@@ -33,6 +33,9 @@ Parameters:
     AccountId:
         Type: String
         Description: AWS Account ID
+    PrivateSubnetId:
+        Type: String
+        Description: The ID of the private subnet
 
 Resources:
     PublicSubnet:
@@ -96,6 +99,7 @@ Resources:
         Properties:
             Subnets:
                 - !Ref PublicSubnet
+                - !Ref PrivateSubnetId
             SecurityGroups:
                 - !Ref SecurityGroup
             VpcConnectorName: !Sub "${EnvironmentName}-vpc-connector"

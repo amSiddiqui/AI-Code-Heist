@@ -53,7 +53,8 @@ aws cloudformation deploy \
     OpenAIApiKey=$OPENAI_API_KEY \
     AdminKey=$ADMIN_KEY \
     SecretKey=$SECRET_KEY \
-    AccountId=$AWS_ACCOUNT_ID
+    AccountId=$AWS_ACCOUNT_ID \
+    PrivateSubnetId=$PRIVATE_SUBNET_ID
     
 
 
