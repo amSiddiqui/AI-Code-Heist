@@ -22,6 +22,8 @@ const ChatWindow = ({
     const [isMessageStream, setIsMessageStream] = React.useState(false);
     const [userMessage, setUserMessage] = React.useState("");
     const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+    // Create ref to the input field
+    const inputRef = React.useRef<HTMLInputElement | null>(null);
 
     const { levelCompleted, clearChat } = useGameContext(); 
 
@@ -56,6 +58,7 @@ const ChatWindow = ({
 
             reader?.read().then(function processText({ done, value }) {
                 if (done) {
+                    inputRef.current?.focus();
                     return;
                 }
                 const token = decoder.decode(value);
@@ -173,7 +176,7 @@ const ChatWindow = ({
                             inputProps={{
                                 "aria-label": "Ask a question...",
                             }}
-                            focused
+                            inputRef={inputRef}
                             variant="standard"
                             disabled={isMessageStream}
                             multiline
