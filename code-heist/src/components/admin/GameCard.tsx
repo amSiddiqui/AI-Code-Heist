@@ -3,7 +3,18 @@ import { calculatePlayerScore, formatISODate, secondsToHourMinuteSecond } from "
 import { ExpandMore } from "@mui/icons-material";
 import { Accordion, AccordionActions, AccordionDetails, AccordionSummary, Box, Button, Chip, Dialog, DialogActions, DialogTitle, Paper, Stack, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useState } from "react";
+import Player from "@app/models/Player";
 
+
+const sortPlayers = (players: {[player_id: string]: Player}) => {
+    // sort by Player level and if player level is same then sort by score
+    return Object.values(players).sort((a, b) => {
+        if (a.level === b.level) {
+            return  calculatePlayerScore(a) - calculatePlayerScore(b);
+        }
+        return b.level - a.level;
+    });
+}
 
 const GameCard = ({
     game,
@@ -73,25 +84,25 @@ const GameCard = ({
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {Object.entries(game.players).map(
-                                            ([player_id, player]) => (
-                                                <TableRow key={player_id}>
-                                                    <TableCell>
-                                                        {player.name}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        {player.level}
-                                                    </TableCell>
-                                                    <TableCell align="right">
-                                                        {secondsToHourMinuteSecond(
-                                                            calculatePlayerScore(
-                                                                player
-                                                            )
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        )}
+                                        {Object.entries(
+                                            sortPlayers(game.players)
+                                        ).map(([player_id, player]) => (
+                                            <TableRow key={player_id}>
+                                                <TableCell>
+                                                    {player.name}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {player.level}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    {secondsToHourMinuteSecond(
+                                                        calculatePlayerScore(
+                                                            player
+                                                        )
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
                                     </TableBody>
                                 </Table>
                             </TableContainer>
