@@ -1,8 +1,8 @@
+import os
+import logging
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-import os
-import logging
 import boto3
 
 # Current file path
