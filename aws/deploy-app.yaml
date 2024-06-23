@@ -1,94 +1,160 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
-  VPCId:
-    Type: String
-  PrivateSubnetId:
-    Type: String
-  SecurityGroupId:
-    Type: String
-  RedisClusterEndpoint:
-    Type: String
-  EnvironmentName:
-    Type: String
-    Default: ai-code-heist
-  RedisClusterPort:
-    Type: String
-  ECRRepositoryUri:
-    Type: String
-    Description: The URI of the ECR repository containing the Docker image
-  OpenAIApiKey:
-    Type: String
-  AdminKey:
-    Type: String
-  SecretKey:
-    Type: String
-  PrivateS3:
-    Type: String
+    VPCId:
+        Type: String
+        Description: The ID of the VPC where the App Runner service will be deployed
+    EnvironmentName:
+        Type: String
+        Default: ai-code-heist
+    ECRRepository:
+        Type: String
+        Description: The ECR repository for the App Runner application
+    ImageTag:
+        Type: String
+        Description: The image tag for the ECR repository
+        Default: latest
+    OpenAIApiKey:
+        Type: String
+        Description: OpenAI API Key
+    AdminKey:
+        Type: String
+        Description: Admin Key
+    SecretKey:
+        Type: String
+        Description: Secret Key
+    RedisUrl:
+        Type: String
+    RedisPort:
+        Type: String
+        Default: "6379"
+    PrivateS3:
+        Type: String
+        Description: S3 bucket name for private data
+    AccountId:
+        Type: String
+        Description: AWS Account ID
+
 Resources:
-  AppRunnerService:
-    Type: AWS::AppRunner::Service
-    Properties:
-      ServiceName: ai-code-heist-app
-      SourceConfiguration:
-        AuthenticationConfiguration:
-          AccessRoleArn: !GetAtt AppRunnerServiceRole.Arn
-        AutoDeploymentsEnabled: true
-        ImageRepository:
-          ImageIdentifier: !Ref ECRRepositoryUri
-          ImageRepositoryType: ECR
-          ImageConfiguration:
-            Port: 8000
-            RuntimeEnvironmentVariables:
-              - Name: OPENAI_API_KEY
-                Value: !Ref OpenAIApiKey
-              - Name: ADMIN_KEY
-                Value: !Ref AdminKey
-              - Name: SECRET_KEY
-                Value: !Ref SecretKey
-              - Name: REDIS_URL
-                Value: !Ref RedisClusterEndpoint
-              - Name: REDIS_PORT
-                Value: !Ref RedisClusterPort
-              - Name: PRIVATE_S3
-                Value: !Ref PrivateS3
-      InstanceConfiguration:
-        Cpu: 1024
-        Memory: 2048
-      NetworkConfiguration:
-        EgressConfiguration:
-          EgressType: VPC
-          VpcConnectorArn: !Ref VpcConnector
-    DependsOn:
-      - VpcConnector
-      - AppRunnerServiceRole
-  AppRunnerServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: apprunner.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: AppRunnerServicePolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                Resource: !Sub "arn:aws:s3:::${PrivateS3}/*"
-  VpcConnector:
-    Type: AWS::AppRunner::VpcConnector
-    Properties:
-      VpcConnectorName: !Sub "${EnvironmentName}-vpc-connector"
-      Subnets:
-        - !Ref PrivateSubnetId
-      SecurityGroups:
-        - !Ref SecurityGroupId
+    PublicSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPCId
+            CidrBlock: 10.0.2.0/24
+            AvailabilityZone: !Select [0, !GetAZs ""]
+            MapPublicIpOnLaunch: true
+            Tags:
+                - Key: Name
+                  Value: !Sub "${EnvironmentName}-public-subnet"
+
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Sub "${EnvironmentName}-igw"
+
+    AttachGateway:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            VpcId: !Ref VPCId
+            InternetGatewayId: !Ref InternetGateway
+
+    RouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+            VpcId: !Ref VPCId
+            Tags:
+                - Key: Name
+                  Value: !Sub "${EnvironmentName}-route-table"
+
+    PublicRoute:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId: !Ref RouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+
+    RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            SubnetId: !Ref PublicSubnet
+            RouteTableId: !Ref RouteTable
+
+    SecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Security Group for App Runner
+            VpcId: !Ref VPCId
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 8000
+                  ToPort: 8000
+                  CidrIp: 0.0.0.0/0
+
+    AppRunnerVpcConnector:
+        Type: AWS::AppRunner::VpcConnector
+        Properties:
+            Subnets:
+                - !Ref PublicSubnet
+            SecurityGroups:
+                - !Ref SecurityGroup
+            VpcConnectorName: !Sub "${EnvironmentName}-vpc-connector"
+            Tags:
+                - Key: Name
+                  Value: !Sub "${EnvironmentName}-vpc-connector"
+        DependsOn:
+            - PublicSubnet
+            - SecurityGroup
+            - AttachGateway
+            - RouteTableAssociation
+            - InternetGateway
+
+    AppRunnerService:
+        Type: AWS::AppRunner::Service
+        Properties:
+            ServiceName: !Sub "${EnvironmentName}-app"
+            SourceConfiguration:
+                ImageRepository:
+                    ImageIdentifier: !Sub "${ECRRepository}:${ImageTag}"
+                    ImageRepositoryType: ECR
+                    ImageConfiguration:
+                        Port: "8000"
+                        RuntimeEnvironmentVariables:
+                            - Name: OPENAI_API_KEY
+                              Value: !Ref OpenAIApiKey
+                            - Name: ADMIN_KEY
+                              Value: !Ref AdminKey
+                            - Name: SECRET_KEY
+                              Value: !Ref SecretKey
+                            - Name: REDIS_URL
+                              Value: !Ref RedisUrl
+                            - Name: REDIS_PORT
+                              Value: !Ref RedisPort
+                            - Name: PRIVATE_S3
+                              Value: !Ref PrivateS3
+                AutoDeploymentsEnabled: true
+                AuthenticationConfiguration:
+                    AccessRoleArn: !Sub arn:aws:iam::${AccountId}:role/service-role/AppRunnerECRAccessRole
+            InstanceConfiguration:
+                InstanceRoleArn: !Sub arn:aws:iam::${AccountId}:role/AICodeHeistAppRunnerInstanceRole
+            NetworkConfiguration:
+                EgressConfiguration:
+                    EgressType: VPC
+                    VpcConnectorArn: !Ref AppRunnerVpcConnector
+            AutoScalingConfigurationArn: !Ref AppRunnerAutoScalingConfiguration
+
+    AppRunnerAutoScalingConfiguration:
+        Type: AWS::AppRunner::AutoScalingConfiguration
+        Properties:
+            AutoScalingConfigurationName: !Sub "${EnvironmentName}-auto-scaling"
+            MaxConcurrency: 100
+            MinSize: 1
+            MaxSize: 5
+
 Outputs:
-  AppRunnerService:
-    Description: The App Runner service
-    Value: !Ref AppRunnerService
+    PublicSubnetId:
+        Description: The ID of the public subnet
+        Value: !Ref PublicSubnet
+    SecurityGroupId:
+        Description: The ID of the security group
+        Value: !Ref SecurityGroup
