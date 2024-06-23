@@ -11,7 +11,8 @@ REDIS_STACK_NAME="ai-code-heist-redis-stack"
 APP_STACK_NAME="ai-code-heist-app-stack"
 REDIS_TEMPLATE_FILE="deploy-redis.yaml"
 APP_TEMPLATE_FILE="deploy-app.yaml"
-ECR_REPO_URI="${ECR_REPOSITORY_URI}:latest"
+
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
 # Deploy the Redis CloudFormation stack
 echo "Deploying the Redis stack..."
@@ -45,15 +46,16 @@ aws cloudformation deploy \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
     VPCId=$VPC_ID \
-    PrivateSubnetId=$PRIVATE_SUBNET_ID \
-    SecurityGroupId=$SECURITY_GROUP_ID \
-    RedisClusterEndpoint=$REDIS_CLUSTER_ENDPOINT \
-    RedisClusterPort=$REDIS_CLUSTER_PORT \
-    ECRRepositoryUri=$ECR_REPO_URI \
+    RedisUrl=$REDIS_CLUSTER_ENDPOINT \
+    RedisPort=$REDIS_CLUSTER_PORT \
+    ECRRepository=$ECR_REPOSITORY_URI \
+    PrivateS3=$PRIVATE_S3 \
     OpenAIApiKey=$OPENAI_API_KEY \
     AdminKey=$ADMIN_KEY \
     SecretKey=$SECRET_KEY \
-    PrivateS3=$PRIVATE_S3
+    AccountId=$AWS_ACCOUNT_ID
+    
+
 
 # Wait until the App Runner stack is created
 echo "Waiting for App Runner stack to be created..."
