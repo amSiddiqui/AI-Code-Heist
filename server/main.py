@@ -107,8 +107,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_KEY = os.getenv("ADMIN_KEY")
 REDIS_URL = os.getenv("REDIS_URL", "localhost")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
-MODEL_NAME = "gpt-3.5-turbo"
-TEMPERATURE = 0.7
+DEFAULT_MODEL_NAME = "gpt-3.5-turbo"
+DEFAULT_TEMPERATURE = 0.6
 
 app = FastAPI()
 
@@ -276,28 +276,27 @@ async def send_message(
 ) -> AsyncIterable[str]:
     """Send messages to the chat assistant and yield the responses."""
     callback = AsyncIteratorCallbackHandler()
+    level_obj = LEVELS[int(level) - 1]
     model = ChatOpenAI(
         streaming=True,
         verbose=True,
-        model=MODEL_NAME,
+        model=level_obj.get("model", DEFAULT_MODEL_NAME),
         callbacks=[callback],
-        temperature=TEMPERATURE,
+        temperature=level_obj.get("temperature", DEFAULT_TEMPERATURE)
     )
+
+    log.debug("All messages: %s", all_messages)
 
     task = asyncio.create_task(
         model.agenerate(messages=[[get_system_message(level), *all_messages]])
     )
 
-    password = LEVELS[int(level) - 1]["code"]
-
     try:
         async for token in callback.aiter():
-            # TODO: If the token is password then replace it with '********'
-            if token in password:
-                yield "**"
             yield token
     except APIError as e:
         log.error("Error sending message: %s", e)
+        yield "Error sending message"
     finally:
         callback.done.set()
     await task
@@ -306,7 +305,6 @@ async def send_message(
 @router.post("/stream_chat/")
 async def stream_chat(req: ChatRequest):
     """Stream chat messages to the chat assistant and return the responses."""
-    log.info("Received chat request: %s", req)
     level = req.level
     if len(req.messages) > 40:
         raise HTTPException(status_code=400, detail="Too many messages")
