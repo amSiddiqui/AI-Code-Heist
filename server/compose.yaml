@@ -19,6 +19,7 @@ services:
       - ADMIN_KEY=${ADMIN_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - REDIS_PORT=${REDIS_PORT}
+      - PRIVATE_S3=${PRIVATE_S3}
     volumes:
       - .:/app
       - ./firebase-sdk.json:/app/firebase-sdk.json:ro
