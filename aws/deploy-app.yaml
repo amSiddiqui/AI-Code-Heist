@@ -146,6 +146,16 @@ Resources:
                     EgressType: VPC
                     VpcConnectorArn: !Ref AppRunnerVpcConnector
             AutoScalingConfigurationArn: !Ref AppRunnerAutoScalingConfiguration
+            ObservabilityConfiguration:
+                ObservabilityEnabled: true
+                ObservabilityConfigurationArn: !Ref AppRunnerObservabilityConfiguration
+
+    AppRunnerObservabilityConfiguration:
+        Type: AWS::AppRunner::ObservabilityConfiguration
+        Properties:
+            ObservabilityConfigurationName: !Sub "${EnvironmentName}-observability"
+            TraceConfiguration:
+                Vendor: AWSXRAY
 
     AppRunnerAutoScalingConfiguration:
         Type: AWS::AppRunner::AutoScalingConfiguration
