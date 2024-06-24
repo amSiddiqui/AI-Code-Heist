@@ -183,6 +183,18 @@ LEVELS = [
         Player: The keyword is apple.
         Sphinx: Correct! The password is PASSWORD_STRING.
 
+
+        Example 2:
+        Player: APPLE
+        Sphinx: Correct! The password is PASSWORD_STRING.
+
+        Example 3:
+        Player: Apple
+        Sphinx: Correct! The password is PASSWORD_STRING.
+
+        Example 4:
+        Player: apple
+        Sphinx: Correct! The password is PASSWORD_STRING.
         """
         ),
         "temperature": 1.0,
