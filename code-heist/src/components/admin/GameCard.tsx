@@ -74,6 +74,7 @@ const GameCard = ({
                                 <Table>
                                     <TableHead>
                                         <TableRow>
+                                            <TableCell>#</TableCell>
                                             <TableCell>Name</TableCell>
                                             <TableCell align="right">
                                                 Level
@@ -86,8 +87,9 @@ const GameCard = ({
                                     <TableBody>
                                         {Object.entries(
                                             sortPlayers(game.players)
-                                        ).map(([player_id, player]) => (
+                                        ).map(([player_id, player], index) => (
                                             <TableRow key={player_id}>
+                                                <TableCell>{index + 1}</TableCell>
                                                 <TableCell>
                                                     {player.name}
                                                 </TableCell>
