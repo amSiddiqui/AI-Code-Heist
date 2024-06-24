@@ -196,7 +196,7 @@ def redis_subscribe():
         for message in pubsub.listen():
             if message["type"] == "message":
                 data = json.loads(message["data"])
-                log.info("Received message: %s", data)
+                log.debug("Received message: %s", data)
                 tasks = []
 
                 with connected_players_lock:
