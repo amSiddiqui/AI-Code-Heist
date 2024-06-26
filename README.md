@@ -80,6 +80,7 @@ AI Code Heist is an interactive game where players need to interact with a chatb
         key = '<Choose an admin password>'
         print(hashlib.sha256(key.encode("utf-8")).hexdigest())
         ```
+   - `SECRET_KEY` can be any random long string
 
 ## Running the Application
 
