@@ -95,11 +95,12 @@ from lib.game_controller import (
     delete_game,
     deactivate_game,
     update_player_level,
+    get_level_code,
     PlayerNotFound,
     GameNotFound,
 )
 
-from lib.level import is_code_correct, LEVELS
+from lib.level import LEVELS
 
 log = logging.getLogger(__name__)
 
@@ -135,7 +136,7 @@ try:
 except Exception as e:
     log.error("Error connecting to Redis: %s", e)
     exit(1)
-    
+
 log.info("Redis client connected")
 
 connected_clients: Dict[str, List[WebSocket]] = {"admin": [], "players": []}
@@ -187,8 +188,8 @@ async def safe_send_json(client: WebSocket, data: dict):
     """Safely send JSON data to a WebSocket client."""
     try:
         await client.send_json(data)
-    except Exception as e:
-        log.error("Error sending message: %s", e)
+    except Exception as exc:
+        log.error("Error sending message: %s", exc)
 
 
 def redis_subscribe():
@@ -257,6 +258,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[Message]
     level: int
+    game_key: str
 
 
 router = APIRouter()
@@ -268,18 +270,17 @@ def read_root():
     return {"Hello": "World"}
 
 
-def get_system_message(level: int):
+def get_system_message(level: int, code: str):
     """Get a system message for the chat assistant."""
 
     level_obj = LEVELS[int(level) - 1]
-    code = level_obj["code"]
     system_message = level_obj["system_message"] % code
 
     return SystemMessage(content=system_message)
 
 
 async def send_message(
-    all_messages: List[Union[AIMessage, HumanMessage]], level: int
+    all_messages: List[Union[AIMessage, HumanMessage]], level: int, game_key: str
 ) -> AsyncIterable[str]:
     """Send messages to the chat assistant and yield the responses."""
     callback = AsyncIteratorCallbackHandler()
@@ -292,17 +293,19 @@ async def send_message(
         temperature=level_obj.get("temperature", DEFAULT_TEMPERATURE)
     )
 
+    code = get_level_code(game_key, str(level), rds_client)
+
     log.debug("All messages: %s", all_messages)
 
     task = asyncio.create_task(
-        model.agenerate(messages=[[get_system_message(level), *all_messages]])
+        model.agenerate(messages=[[get_system_message(level, code), *all_messages]])
     )
 
     try:
         async for token in callback.aiter():
             yield token
-    except APIError as e:
-        log.error("Error sending message: %s", e)
+    except APIError as exc:
+        log.error("Error sending message: %s", exc)
         yield "Error sending message"
     finally:
         callback.done.set()
@@ -313,9 +316,10 @@ async def send_message(
 async def stream_chat(req: ChatRequest):
     """Stream chat messages to the chat assistant and return the responses."""
     level = req.level
+    game_key = req.game_key
     if len(req.messages) > 40:
         raise HTTPException(status_code=400, detail="Too many messages")
-    generator = send_message([message.to_message() for message in req.messages], level)
+    generator = send_message([message.to_message() for message in req.messages], level, game_key)
     return StreamingResponse(generator, media_type="text/event-stream")
 
 
@@ -349,7 +353,7 @@ def fetch_all_games(_=Depends(manager)):
 @router.post("/admin/games")
 def action_create_game(_=Depends(manager)):
     """Create a new game."""
-    join_key = create_new_game()
+    join_key = create_new_game(rds_client)
     return {"join_key": join_key}
 
 
@@ -433,14 +437,14 @@ async def websocket_player_endpoint(websocket: WebSocket):
                 add_player_connection(player_id, websocket)
                 response = await handle_player_requests(data)
                 await websocket.send_json(response)
-            except HTTPException as e:
+            except HTTPException as exc:
                 await websocket.send_json(
-                    {"type": "error", "error": e.detail, "status_code": e.status_code}
+                    {"type": "error", "error": exc.detail, "status_code": exc.status_code}
                 )
-            except (GameNotFound, PlayerNotFound) as e:
-                log.info("Player not found: %s", e)
+            except (GameNotFound, PlayerNotFound) as exc:
+                log.info("Player not found: %s", exc)
                 await websocket.send_json(
-                    {"type": "error", "error": str(e), "status_code": 404}
+                    {"type": "error", "error": str(exc), "status_code": 404}
                 )
                 await websocket.close()
                 remove_player_connection_by_ws(websocket)
@@ -557,7 +561,7 @@ def gauss_code(data: dict):
         print("GUESS_CODE: Level not started")
         raise HTTPException(status_code=400, detail="Level not started")
 
-    if is_code_correct(guess, level):
+    if get_level_code(game_key, level, rds_client) == guess:
         score = calculate_score(level_info["started_at"])
         level = int(level) + 1
         update_player_level(game_key, player_id, level, score)
@@ -581,5 +585,5 @@ app.mount("/assets", StaticFiles(directory="static/assets", html=True), name="st
 
 # add a catch all route
 @app.get("/{catch_all:path}")
-def catch_all(catch_all: str):
+def catch_all(_: str):
     return FileResponse("static/index.html")

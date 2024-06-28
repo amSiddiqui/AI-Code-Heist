@@ -6,7 +6,10 @@ import random
 from datetime import datetime, UTC
 import uuid
 import logging
-from .level import LEVELS
+import json
+
+from redis import Redis
+from .level import LEVELS, generate_code_based_on_level_type
 
 from .firebase_helper import db
 
@@ -126,7 +129,7 @@ def update_player_level(join_key: str, player_id: str, level: int, score: int):
     GAMES_COLLECTION.document(join_key).update({"players": players})
 
 
-def create_new_game():
+def create_new_game(rds_client: Redis):
     join_key = generate_4_digit_code()
     retry = 0
     while check_if_document_exists(join_key):
@@ -142,8 +145,8 @@ def create_new_game():
         "status": "active",
         "created_at": created_at,
         "levels": {
-            level['level']: {
-                "code": level["code"],
+            level["level"]: {
+                "code": generate_code_based_on_level_type(level["level_type"]),
                 "started_at": None,
                 "started": False,
             }
@@ -152,7 +155,26 @@ def create_new_game():
     }
 
     GAMES_COLLECTION.document(join_key).set(game_data)
+    rds_client.set(join_key, json.dumps(game_data['levels']))
+
     return join_key
+
+
+def get_level_code(join_key: str, level: str, rds_client: Redis):
+    # check if exists in redis
+    level_code = rds_client.get(join_key)
+    if level_code:
+        return json.loads(level_code)[level]["code"]
+    # if not then fetch from firestore and update the redis cache
+    game = GAMES_COLLECTION.document(join_key).get()
+    if not game.exists:
+        raise GameNotFound
+    game_data = game.to_dict()
+    levels = game_data["levels"]
+    if level not in levels:
+        raise ValueError("Level not found")
+    rds_client.set(join_key, json.dumps(levels))
+    return levels[level]["code"]
 
 
 def start_game(game_key: str, level: str):

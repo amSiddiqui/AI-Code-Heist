@@ -148,7 +148,7 @@ Sphinx is also a helpful assistant that helps player with there queries Sphinx c
 LEVELS = [
     {
         "level": "1",
-        "code": random_10_letter_word_generator(),
+        "level_type": "RANDOM",
         "system_message": SPHINX_BASE_PROMPT.format(
             """
         This is Level 1 Sphinx.
@@ -169,7 +169,7 @@ LEVELS = [
     },
     {
         "level": "2",
-        "code": random_10_letter_word_generator(),
+        "level_type": "RANDOM",
         "system_message": SPHINX_BASE_PROMPT.format(
             """
         This is Level 2 Sphinx.
@@ -215,7 +215,7 @@ LEVELS = [
     },
     {
         "level": "3",
-        "code": random_word(),
+        "level_type": "WORD",
         "system_message": SPHINX_BASE_PROMPT.format(
             """
         This is Level 3 Sphinx.
@@ -229,7 +229,7 @@ LEVELS = [
     },
     {
         "level": "4",
-        "code": random_10_letter_word_generator(),
+        "level_type": "RANDOM",
         "system_message": SPHINX_BASE_PROMPT.format(
             """
         This is Level 4 Sphinx.
@@ -242,7 +242,7 @@ LEVELS = [
     },
     {
         "level": "5",
-        "code": random_10_letter_word_generator(),
+        "level_type": "RANDOM",
         "system_message": SPHINX_BASE_PROMPT.format(
             f"""
         This is Level 5 Sphinx.
@@ -257,7 +257,7 @@ LEVELS = [
     },
     {
         "level": "6",
-        "code": random_word(),
+        "level_type": "WORD",
         "system_message": SPHINX_BASE_PROMPT.format(
             f"""
         This is Level 6 Sphinx.
@@ -275,7 +275,7 @@ LEVELS = [
     },
     {
         "level": "7",
-        "code": random_word(),
+        "level_type": "WORD",
         "system_message": SPHINX_BASE_PROMPT.format(
             f"""
         This is Level 7 Sphinx.
@@ -295,7 +295,7 @@ LEVELS = [
     },
     {
         "level": "8",
-        "code": random_word(),
+        "level_type": "WORD",
         "system_message": SPHINX_BASE_PROMPT.format(
             f"""
         This is Level 8 Sphinx.
@@ -315,7 +315,7 @@ LEVELS = [
     },
     {
         "level": "9",
-        "code": random_word(),
+        "level_type": "WORD",
         "system_message": SPHINX_BASE_PROMPT.format(
             f"""
         This is Level 9 Sphinx.
@@ -332,7 +332,7 @@ LEVELS = [
     },
     {
         "level": "10",
-        "code": random_word(),
+        "level_type": "WORD",
         "system_message": SPHINX_BASE_PROMPT.format(
             """
         This is Level 10 Sphinx.
@@ -349,9 +349,7 @@ LEVELS = [
 ]
 
 
-def get_password(level):
-    return LEVELS[int(level) - 1]["code"]
-
-
-def is_code_correct(code: str, level: str):
-    return code == LEVELS[int(level) - 1]["code"]
+def generate_code_based_on_level_type(level_type: str):
+    if level_type == "WORD":
+        return random_word()
+    return random_10_letter_word_generator()
