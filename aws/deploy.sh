@@ -44,7 +44,7 @@ echo "Deploying the ECS and ALB stack..."
 aws cloudformation deploy \
   --template-file $APP_TEMPLATE_FILE \
   --stack-name $APP_STACK_NAME \
-  --capabilities CAPABILITY_IAM \
+  --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
       VPCId=$VPC_ID \
       PrivateSubnetId=$PRIVATE_SUBNET_ID \
@@ -56,7 +56,9 @@ aws cloudformation deploy \
       AdminKey=$ADMIN_KEY \
       SecretKey=$SECRET_KEY \
       PrivateS3=$PRIVATE_S3 \
-      AccountId=$AWS_ACCOUNT_ID
+      AccountId=$AWS_ACCOUNT_ID \
+      RedisClusterEndpoint=$REDIS_CLUSTER_ENDPOINT \
+      RedisClusterPort=$REDIS_CLUSTER_PORT
 
 # Wait until the ECS and ALB stack is created
 echo "Waiting for ECS and ALB stack to be created..."

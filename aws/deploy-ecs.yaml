@@ -28,6 +28,11 @@ Parameters:
     Default: ""
   AccountId:
     Type: String
+  RedisClusterEndpoint:
+    Type: String
+  RedisClusterPort:
+    Type: String
+    Default: "6379"
 
 Resources:
   # Public Subnet 1
@@ -170,11 +175,38 @@ Resources:
     Properties:
       ClusterName: !Sub "${EnvironmentName}-cluster"
 
+  # IAM Role for ECS Task Execution
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "ecsTaskExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ecs-tasks.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "ecsTaskExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetAuthorizationToken"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "s3:GetObject"
+                Resource: "*"
+
   # Task Definition
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
-    DependsOn:
-      - ECSExecutionRole
+    DependsOn: ECSExecutionRole
     Properties:
       Family: !Sub "${EnvironmentName}-task"
       Cpu: '256'
@@ -182,8 +214,8 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      ExecutionRoleArn: !Sub "arn:aws:iam::${AccountId}:role/ecsTaskExecutionRole"
-      TaskRoleArn: !Sub "arn:aws:iam::${AccountId}:role/ecsTaskExecutionRole"
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSExecutionRole.Arn
       ContainerDefinitions:
         - Name: !Sub "${EnvironmentName}-container"
           Image: !Sub "${ECRRepositoryURI}:${ImageTag}"
@@ -194,9 +226,9 @@ Resources:
             - Name: OPENAI_API_KEY
               Value: !Ref OpenAIApiKey
             - Name: REDIS_URL
-              Value: redis
+              Value: !Ref RedisClusterEndpoint
             - Name: REDIS_PORT
-              Value: "6379"
+              Value: !Ref RedisClusterPort
             - Name: ADMIN_KEY
               Value: !Ref AdminKey
             - Name: SECRET_KEY
@@ -240,34 +272,6 @@ Resources:
         - TargetGroupArn: !Ref ALBTargetGroup
           ContainerName: !Sub "${EnvironmentName}-container"
           ContainerPort: 8000
-
-  # IAM Role for ECS Task Execution
-  ECSExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: "ecsTaskExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service: "ecs-tasks.amazonaws.com"
-            Action: "sts:AssumeRole"
-      Path: "/"
-      Policies:
-        - PolicyName: "ecsTaskExecutionPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "ecr:GetDownloadUrlForLayer"
-                  - "ecr:BatchGetImage"
-                  - "ecr:GetAuthorizationToken"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
-                  - "s3:GetObject"
-                Resource: "*"
 
 Outputs:
   ALBEndpoint:
