@@ -14,8 +14,10 @@ interface Message {
 
 const ChatWindow = ({
     level,
+    game_key
 }: {
     level: number;
+    game_key: string;
 }) => {
 
     const [messages, setMessages] = React.useState<Message[]>([]);
@@ -51,7 +53,7 @@ const ChatWindow = ({
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ messages: newMessages, level }),
+            body: JSON.stringify({ messages: newMessages, level, game_key }),
         }).then(response => {
             const reader  = response.body?.getReader();
             const decoder = new TextDecoder('utf-8');

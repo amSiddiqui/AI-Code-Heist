@@ -254,7 +254,7 @@ function Game() {
             {player && game && !gameLoadError && (
                 <Box className="main-layout">
                     <ActionBar onWin={onWin} player={player} game={game} />
-                    <ChatWindow level={player.level} />
+                    <ChatWindow level={player.level} game_key={game.join_key} />
                 </Box>
             )}
             {loading && !gameLoadError && (
