@@ -8,20 +8,25 @@
 # database or a cache. For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  server:
+  ai-code-heist:
     build:
       context: .
     ports:
-      - 8000:8000
+      - "8000:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=redis
       - ADMIN_KEY=${ADMIN_KEY}
       - SECRET_KEY=${SECRET_KEY}
-      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PORT=6379
       - PRIVATE_S3=${PRIVATE_S3}
     volumes:
       - .:/app
       - ./firebase-sdk.json:/app/firebase-sdk.json:ro
-    network_mode: "bridge"
-    image: ai-code-heist:latest
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
