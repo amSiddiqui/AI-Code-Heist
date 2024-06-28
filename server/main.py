@@ -14,12 +14,9 @@ The application uses CORS middleware to allow requests from the React app runnin
 
 The application's routes are all included under the '/api' prefix.
 """
-
 import os
 from typing import AsyncIterable, List, Union, Dict
 import hashlib
-import logging
-from logging.config import dictConfig
 from datetime import timedelta, datetime, UTC
 import asyncio
 import json
@@ -28,7 +25,7 @@ from openai import APIError
 import redis
 
 from pydantic import BaseModel
-from dotenv import load_dotenv
+
 
 from fastapi import (
     FastAPI,
@@ -46,44 +43,7 @@ from fastapi_login.exceptions import InvalidCredentialsException
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import AsyncIteratorCallbackHandler
-
-
-logging_config = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "()": "uvicorn.logging.DefaultFormatter",
-            "fmt": "%(levelprefix)s %(asctime)s %(message)s",
-            "use_colors": True,
-        },
-    },
-    "handlers": {
-        "default": {
-            "formatter": "default",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    "root": {
-        "handlers": ["default"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "uvicorn": {"handlers": ["default"], "level": "INFO"},
-        "uvicorn.error": {"level": "INFO"},
-        "uvicorn.access": {
-            "handlers": ["default"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
-
-dictConfig(logging_config)
-load_dotenv()
-
-
+import init
 from lib.game_controller import (
     PlayerAlreadyExists,
     add_player_through_join_key,
@@ -102,7 +62,7 @@ from lib.game_controller import (
 
 from lib.level import LEVELS
 
-log = logging.getLogger(__name__)
+log = init.get_logger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_KEY = os.getenv("ADMIN_KEY")
