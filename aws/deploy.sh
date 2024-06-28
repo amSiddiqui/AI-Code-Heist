@@ -10,7 +10,7 @@ export $(grep -v '^#' ../server/.env | xargs)
 REDIS_STACK_NAME="ai-code-heist-redis-stack"
 APP_STACK_NAME="ai-code-heist-app-stack"
 REDIS_TEMPLATE_FILE="deploy-redis.yaml"
-APP_TEMPLATE_FILE="deploy-app.yaml"
+APP_TEMPLATE_FILE="deploy-ecs.yaml"
 
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 
@@ -38,34 +38,30 @@ REDIS_CLUSTER_PORT=$(echo $REDIS_CLUSTER_INFO | jq -r '.CacheClusters[0].CacheNo
 
 echo "Redis cluster endpoint: $REDIS_CLUSTER_ENDPOINT:$REDIS_CLUSTER_PORT"
 
-# Deploy the App Runner CloudFormation stack
-echo "Deploying the App Runner stack..."
+# Deploy the ECS and ALB CloudFormation stack
+echo "Deploying the ECS and ALB stack..."
 aws cloudformation deploy \
   --template-file $APP_TEMPLATE_FILE \
   --stack-name $APP_STACK_NAME \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
-    VPCId=$VPC_ID \
-    RedisUrl=$REDIS_CLUSTER_ENDPOINT \
-    RedisPort=$REDIS_CLUSTER_PORT \
-    ECRRepository=$ECR_REPOSITORY_URI \
-    PrivateS3=$PRIVATE_S3 \
-    OpenAIApiKey=$OPENAI_API_KEY \
-    AdminKey=$ADMIN_KEY \
-    SecretKey=$SECRET_KEY \
-    AccountId=$AWS_ACCOUNT_ID \
-    PrivateSubnetId=$PRIVATE_SUBNET_ID
-    
+      VPCId=$VPC_ID \
+      PrivateSubnetId=$PRIVATE_SUBNET_ID \
+      SecurityGroupId=$SECURITY_GROUP_ID \
+      ECRRepositoryURI=$ECR_REPOSITORY_URI \
+      ImageTag=$IMAGE_TAG \
+      EnvironmentName="ai-code-heist" \
+      OpenAIApiKey=$OPENAI_API_KEY \
+      AdminKey=$ADMIN_KEY \
+      SecretKey=$SECRET_KEY \
+      PrivateS3=$PRIVATE_S3 \
+      AccountId=$AWS_ACCOUNT_ID
 
-
-# Wait until the App Runner stack is created
-echo "Waiting for App Runner stack to be created..."
+# Wait until the ECS and ALB stack is created
+echo "Waiting for ECS and ALB stack to be created..."
 aws cloudformation wait stack-create-complete --stack-name $APP_STACK_NAME
 
-# Fetch the outputs from the App Runner stack
-echo "Fetching App Runner stack outputs..."
-APP_OUTPUTS=$(aws cloudformation describe-stacks --stack-name $APP_STACK_NAME --query "Stacks[0].Outputs")
+# Fetch the ALB endpoint
+ALB_ENDPOINT=$(aws cloudformation describe-stacks --stack-name $APP_STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='ALBEndpoint'].OutputValue" --output text)
 
-# Parse the outputs and print the URLs using jq
-echo "Deployment complete. Here are the URLs:"
-echo "$APP_OUTPUTS" | jq -r '.[] | "\(.OutputKey): \(.OutputValue)"'
+echo "ALB endpoint: $ALB_ENDPOINT"
