@@ -127,8 +127,15 @@ app.add_middleware(
 
 log.info('Redis URL %s:%s', REDIS_URL, REDIS_PORT)
 
-rds_client = redis.Redis.from_url(f"redis://{REDIS_URL}:{REDIS_PORT}")
+# Try connecting to redis if failed then exit out
 
+try:
+    rds_client = redis.Redis.from_url(f"redis://{REDIS_URL}:{REDIS_PORT}")
+    rds_client.ping()
+except Exception as e:
+    log.error("Error connecting to Redis: %s", e)
+    exit(1)
+    
 log.info("Redis client connected")
 
 connected_clients: Dict[str, List[WebSocket]] = {"admin": [], "players": []}
