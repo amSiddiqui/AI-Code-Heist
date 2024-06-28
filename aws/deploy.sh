@@ -11,6 +11,7 @@ REDIS_STACK_NAME="ai-code-heist-redis-stack"
 APP_STACK_NAME="ai-code-heist-app-stack"
 REDIS_TEMPLATE_FILE="deploy-redis.yaml"
 APP_TEMPLATE_FILE="deploy-ecs.yaml"
+IMAGE_TAG="latest"
 
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 

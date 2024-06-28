@@ -173,6 +173,8 @@ Resources:
   # Task Definition
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - ECSExecutionRole
     Properties:
       Family: !Sub "${EnvironmentName}-task"
       Cpu: '256'
@@ -211,12 +213,19 @@ Resources:
   # ECS Service
   ECSService:
     Type: AWS::ECS::Service
+    DependsOn:
+      - ALBListener
     Properties:
       ServiceName: !Sub "${EnvironmentName}-service"
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref ECSTaskDefinition
       DesiredCount: 1
       LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      HealthCheckGracePeriodSeconds: 60
+      SchedulingStrategy: REPLICA
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
@@ -231,6 +240,34 @@ Resources:
         - TargetGroupArn: !Ref ALBTargetGroup
           ContainerName: !Sub "${EnvironmentName}-container"
           ContainerPort: 8000
+
+  # IAM Role for ECS Task Execution
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "ecsTaskExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ecs-tasks.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "ecsTaskExecutionPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetAuthorizationToken"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "s3:GetObject"
+                Resource: "*"
 
 Outputs:
   ALBEndpoint:
