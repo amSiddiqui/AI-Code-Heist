@@ -14,6 +14,7 @@ The application uses CORS middleware to allow requests from the React app runnin
 
 The application's routes are all included under the '/api' prefix.
 """
+
 import os
 from typing import AsyncIterable, List, Union, Dict
 import hashlib
@@ -87,7 +88,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-log.info('Redis URL %s:%s', REDIS_URL, REDIS_PORT)
+log.info("Redis URL %s:%s", REDIS_URL, REDIS_PORT)
 
 # Try connecting to redis if failed then exit out
 
@@ -217,6 +218,8 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    """A request model for the chat endpoint."""
+
     messages: List[Message]
     level: int
     game_key: str
@@ -251,7 +254,7 @@ async def send_message(
         verbose=True,
         model=level_obj.get("model", DEFAULT_MODEL_NAME),
         callbacks=[callback],
-        temperature=level_obj.get("temperature", DEFAULT_TEMPERATURE)
+        temperature=level_obj.get("temperature", DEFAULT_TEMPERATURE),
     )
 
     code = get_level_code(game_key, str(level), rds_client)
@@ -280,7 +283,9 @@ async def stream_chat(req: ChatRequest):
     game_key = req.game_key
     if len(req.messages) > 40:
         raise HTTPException(status_code=400, detail="Too many messages")
-    generator = send_message([message.to_message() for message in req.messages], level, game_key)
+    generator = send_message(
+        [message.to_message() for message in req.messages], level, game_key
+    )
     return StreamingResponse(generator, media_type="text/event-stream")
 
 
@@ -343,6 +348,7 @@ def action_delete_game(data: dict, _=Depends(manager)):
 
 @router.post("/admin/game/deactivate")
 def action_deactivate_game(data: dict, _=Depends(manager)):
+    """Deactivate a game."""
     try:
         game_key = data.get("game_key")
         deactivate_game(game_key)
@@ -362,6 +368,7 @@ def action_deactivate_game(data: dict, _=Depends(manager)):
 
 @router.post("/admin/game/start")
 def start_game_level(data: dict, _=Depends(manager)):
+    """Start a game level."""
     game_key = data.get("game_key")
     level = data.get("level")
     try:
@@ -400,7 +407,11 @@ async def websocket_player_endpoint(websocket: WebSocket):
                 await websocket.send_json(response)
             except HTTPException as exc:
                 await websocket.send_json(
-                    {"type": "error", "error": exc.detail, "status_code": exc.status_code}
+                    {
+                        "type": "error",
+                        "error": exc.detail,
+                        "status_code": exc.status_code,
+                    }
                 )
             except (GameNotFound, PlayerNotFound) as exc:
                 log.info("Player not found: %s", exc)
@@ -447,6 +458,7 @@ async def handle_player_connect(data: dict):
 
 @router.post("/game/join")
 def join_game(data: dict):
+    """Join a game."""
     game_key = data.get("game_key")
     player_name = data.get("player_name")
     try:
@@ -488,6 +500,7 @@ async def websocket_admin_endpoint(websocket: WebSocket):
 
 
 def calculate_score(started_at: str):
+    """Calculate the score based on the time elapsed since the level started."""
     # started_at is isoformat utc time
     # find seconds since started_at to utcnow
     started_at = datetime.fromisoformat(started_at)
@@ -497,6 +510,7 @@ def calculate_score(started_at: str):
 
 @router.post("/game/guess")
 def gauss_code(data: dict):
+    """Guess the code for a level."""
     game_key = data.get("game_key")
     player_id = data.get("player_id")
 
@@ -547,4 +561,5 @@ app.mount("/assets", StaticFiles(directory="static/assets", html=True), name="st
 # add a catch all route
 @app.get("/{catch_all:path}")
 def catch_all(_: str):
+    """Catch all route to serve the index.html file."""
     return FileResponse("static/index.html")

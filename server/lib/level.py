@@ -1,8 +1,20 @@
+"""
+This module defines the structure and functionalities of game levels in a video game. It includes classes and methods
+for creating, managing, and interacting with game levels, including loading level data, managing game objects within
+the level, and handling player progression through the game's stages.
+"""
+
 import random
 import string
 
 
 def random_10_letter_word_generator():
+    """
+    Generates a random 10-letter word using uppercase letters.
+
+    Returns:
+        str: A random 10-letter word.
+    """
     return "".join(random.choices(string.ascii_uppercase, k=10))
 
 
@@ -50,7 +62,14 @@ ENGLISH_WORDS = [
 
 
 def random_word():
+    """
+    Returns a random word from the list of English words.
+
+    Returns:
+        str: A random English word.
+    """
     return random.choice(ENGLISH_WORDS)
+
 
 # Sphinx earlier level 1-4
 # Sphinx tells congrats on incorrect passwords

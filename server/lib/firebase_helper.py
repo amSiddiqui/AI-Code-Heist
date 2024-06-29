@@ -1,3 +1,10 @@
+"""
+This module provides functionality for setting up and initializing Firebase Firestore using credentials either from a
+local file or from an S3 bucket. It checks for the existence of the Firebase SDK configuration file locally; if not
+found, it attempts to download the file from a specified S3 bucket. Once the credentials are obtained, it initializes
+the Firebase Admin SDK and Firestore client for further operations.
+"""
+
 import os
 import logging
 import firebase_admin
@@ -21,8 +28,8 @@ else:
     bucket_name = os.getenv("PRIVATE_S3")
     if not bucket_name:
         raise FileNotFoundError(f"{filename} not found and PRIVATE_S3 not set")
-    s3_url = f's3://{bucket_name}/{filename}'
-    s3 = boto3.client('s3')
+    s3_url = f"s3://{bucket_name}/{filename}"
+    s3 = boto3.client("s3")
     s3.download_file(bucket_name, filename, file_loc)
     cred = credentials.Certificate(file_loc)
     log.info("Using %s", s3_url)
