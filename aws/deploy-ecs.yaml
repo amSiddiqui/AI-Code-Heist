@@ -154,13 +154,15 @@ Resources:
       Port: 80
       Protocol: HTTP
       TargetType: ip
-      HealthCheckPath: /
+      HealthCheckPath: /api/
       HealthCheckProtocol: HTTP
       HealthCheckPort: traffic-port
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200"
       Tags:
         - Key: Name
           Value: !Sub "${EnvironmentName}-tg"
