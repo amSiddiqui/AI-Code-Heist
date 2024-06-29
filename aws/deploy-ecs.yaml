@@ -35,6 +35,13 @@ Parameters:
     Default: "6379"
 
 Resources:
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${EnvironmentName}"
+      RetentionInDays: 14
+
   # Public Subnet 1
   PublicSubnet1:
     Type: AWS::EC2::Subnet
@@ -238,7 +245,7 @@ Resources:
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: !Sub "/ecs/${EnvironmentName}"
+              awslogs-group: !Ref LogGroup
               awslogs-region: !Ref "AWS::Region"
               awslogs-stream-prefix: ecs
 
