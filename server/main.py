@@ -560,6 +560,6 @@ app.mount("/assets", StaticFiles(directory="static/assets", html=True), name="st
 
 # add a catch all route
 @app.get("/{catch_all:path}")
-def catch_all(_: str):
+def catch_all(catch_all: str):
     """Catch all route to serve the index.html file."""
     return FileResponse("static/index.html")
