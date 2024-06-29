@@ -43,6 +43,7 @@ from fastapi_login.exceptions import InvalidCredentialsException
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain.callbacks import AsyncIteratorCallbackHandler
+from websockets import ConnectionClosedError
 import init
 from lib.game_controller import (
     PlayerAlreadyExists,
@@ -93,8 +94,8 @@ log.info('Redis URL %s:%s', REDIS_URL, REDIS_PORT)
 try:
     rds_client = redis.Redis.from_url(f"redis://{REDIS_URL}:{REDIS_PORT}")
     rds_client.ping()
-except Exception as e:
-    log.error("Error connecting to Redis: %s", e)
+except redis.RedisError as error:
+    log.error("Error connecting to Redis: %s", error)
     exit(1)
 
 log.info("Redis client connected")
@@ -148,7 +149,7 @@ async def safe_send_json(client: WebSocket, data: dict):
     """Safely send JSON data to a WebSocket client."""
     try:
         await client.send_json(data)
-    except Exception as exc:
+    except (WebSocketDisconnect, ConnectionClosedError) as exc:
         log.error("Error sending message: %s", exc)
 
 
