@@ -14,6 +14,7 @@ AI Code Heist is an interactive game where players need to interact with a chatb
 - [Environment Setup](#environment-setup)
 - [Running the Application](#running-the-application)
 - [Accessing the Application](#accessing-the-application)
+- [Docker Setup](#docker-setup)
 - [Helpful Links](#helpful-links)
 - [License](#license)
 
@@ -56,7 +57,6 @@ AI Code Heist is an interactive game where players need to interact with a chatb
     ```sh
     pip install -r requirements.txt
     ```
-
 
 ## Environment Setup
 1. Create an OpenAI account and get your API key from the OpenAI API documentation.
@@ -106,6 +106,32 @@ AI Code Heist is an interactive game where players need to interact with a chatb
 - Click Create Game to create a new game session.
 - Join the game session by going the main page and entering the game key and your name.
 - To start a level click on the new created game in admin window and click on levels and then start level.
+
+## Docker Setup
+
+To run the application using Docker, ensure you have Node.js installed and Docker Desktop set up.
+
+1. Once the environment file is in place and `firebase-sdk.json` downloaded, build the static files.
+2. Navigate to the `code-heist` directory:
+    ```sh
+    cd code-heist
+    ```
+3. Install the dependencies:
+    ```sh
+    npm install
+    ```
+4. Build the static files:
+    ```sh
+    npm run deploy
+    ```
+5. Navigate to the `server` directory:
+    ```sh
+    cd ../server
+    ```
+6. Launch the Docker image that creates the Redis server and Uvicorn server:
+    ```sh
+    docker compose up --build
+    ```
 
 ## Helpful Links
 
